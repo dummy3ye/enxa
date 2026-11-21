@@ -9,7 +9,11 @@
 
 ## The reference oracle
 
-`exa::ida::Exa` (IDA* with three admissible projections) is the **oracle**. Every faster engine must, on a shared test set, return a solution of exactly the oracle's length. Disagreement = the new engine is wrong (or, rarely, the oracle is; investigate with a third opinion before touching it).
+`exa::Exa` (IDA* with three admissible projections) is the **oracle**. The search is in
+`src/ida.rs`, pruning tables in `src/heuristic.rs`, CLI in `src/cli.rs`, and `src/main.rs`
+is only an entry point. Every faster engine must, on a shared test set, return a solution
+of exactly the oracle's length. Disagreement = the new engine is wrong (or, rarely, the
+oracle is; investigate with a third opinion before touching it).
 
 ## Rules specific to exa
 

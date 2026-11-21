@@ -1,4 +1,6 @@
 //! The one trait every solver implements, so `bench` and `verify` can treat them uniformly.
+//!
+//! Owns: the solver interface only. Must NOT: implement a solver or depend on bench/verify.
 
 use crate::{CubieCube, Move};
 

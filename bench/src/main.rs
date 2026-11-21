@@ -9,12 +9,11 @@
 //! `--batch` times all solves together (excluding generation and verification) and reports
 //! the average per solve; without it, each solve is timed individually for p50/p99.
 //! Every solution is verified; invalid solutions are counted and reported, never hidden.
+//!
+//! Owns: input generation, timing, percentile reporting and solution verification.
+//! Must NOT: implement a solver or change the measured metric.
 
-use cubecore::facelet::{from_facelets, to_facelets};
-use cubecore::moves::random_alg;
-use cubecore::rng::Rng;
-use cubecore::solver::Solver;
-use cubecore::{CubieCube, Move};
+use cubecore::{from_facelets, random_alg, to_facelets, CubieCube, Move, Rng, Solver};
 use std::hint::black_box;
 use std::time::Instant;
 

@@ -1,4 +1,7 @@
 //! The 18 HTM moves.
+//!
+//! Owns: move representation, ordering, parsing/formatting, follow-up legality and
+//! random move sequences. Must NOT: apply moves to cubes or encode coordinates.
 
 use crate::rng::Rng;
 use std::fmt;
@@ -9,22 +12,21 @@ use std::fmt;
 pub struct Move(pub u8);
 
 impl Move {
-    pub const COUNT: usize = 18;
-    pub const FACES: [char; 6] = ['U', 'R', 'F', 'D', 'L', 'B'];
+    pub(crate) const FACES: [char; 6] = ['U', 'R', 'F', 'D', 'L', 'B'];
 
     #[inline]
-    pub fn new(face: u8, power: u8) -> Move {
+    pub(crate) fn new(face: u8, power: u8) -> Move {
         debug_assert!(face < 6 && (1..=3).contains(&power));
         Move(face * 3 + power - 1)
     }
 
     #[inline]
-    pub fn face(self) -> u8 {
+    pub(crate) fn face(self) -> u8 {
         self.0 / 3
     }
 
     #[inline]
-    pub fn power(self) -> u8 {
+    pub(crate) fn power(self) -> u8 {
         self.0 % 3 + 1
     }
 

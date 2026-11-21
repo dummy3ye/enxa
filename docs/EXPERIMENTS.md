@@ -18,6 +18,38 @@ Notes:       <what you learned>
 
 ## Log
 
+### EXP-002: structural refactor with no behavior change
+Date:        2026-11-21
+Tool:        workspace
+Hypothesis:  Splitting the large source files into the required modules, curating each crate's
+             root API and moving the ignored gate to its own test target will preserve all
+             21 tests, the 1,000,000-cube gate result and both benchmark results within
+             machine noise.
+Kill if:     Any test is lost or weakened, the gate output changes, or a same-machine
+             interleaved A/B shows a reproducible >5% slowdown for either solver.
+Setup:       Baseline commit 869172a; post-refactor working tree. Same machine and flags as
+             EXP-001. Commands: `./scripts/check.sh`,
+             `cargo test -p verify --release --test gate -- --ignored --nocapture`,
+             `cargo run --release -p benchkit -- --solver enso --n 100000 --seed 1`,
+             `cargo run --release -p benchkit -- --solver exa --n 50 --depth 8 --seed 1`.
+             Baseline numbers were recorded first in `/tmp/opencode/refactor_baseline.md`.
+Result:      Tests: 21 passed, 1 ignored before and after. Gate before and after:
+             1,000,000 cubes, 0 invalid, 0 failed, avg length 31.343, max 41.
+             Baseline enso (single run): avg 2232 ns, p50 2144 ns, p99 3880 ns,
+             447999 solves/s. Final post-refactor enso (three runs): p50 2249 / 2212 /
+             2309 ns, p99 4568 / 4009 / 4456 ns, 420514 / 434270 / 410672 solves/s.
+             Baseline exa (single run): avg 121157 ns, p50 61216 ns, p99 393820 ns,
+             8254 solves/s. Final post-refactor exa (three runs): p50 63073 / 61123 /
+             58095 ns, p99 464118 / 369496 / 366438 ns, 8014 / 8430 / 8969 solves/s.
+             An early apparent enso slowdown was machine drift: a clean baseline worktree
+             measured at the same time was equal or slower in interleaved A/B runs
+             (baseline p50 2229-2467 ns; refactor p50 2212-2309 ns). Lengths and validity
+             were identical in every run.
+Decision:    keep
+Notes:       Only module ownership, visibility and file layout changed. The four-stage
+             chain, generator sets, search rules, cube conventions, test assertions and
+             benchmark metric are unchanged. The ignored gate target is now `--test gate`.
+
 ### EXP-001: enso Variant A — pure table descent (Thistlethwaite chain)
 Date:        2026-11-21
 Tool:        enso
@@ -31,10 +63,10 @@ Kill if:     Any stage's descent leaves a state outside the next subgroup, any o
 Setup:       rustc 1.97.1 (8bab26f4f), Linux 7.2.14-arch1-1 x86_64,
              Intel Core i3-1005G1 @ 1.20GHz (max 3.4GHz, 4 logical CPUs), 4 cores,
              `.cargo/config.toml`: `-C target-cpu=native`.
-             Commit: none — repo is `git init` only, all files untracked.
+             Baseline commit 869172a (pre-refactor snapshot).
              Seeds: 1 (bench + gate), extra unit-test seeds 101-105 and 31337.
 Result:      Correctness gate (exact command):
-               `cargo test -p verify --release --test enso -- --ignored --nocapture`
+               `cargo test -p verify --release --test gate -- --ignored --nocapture`
                → 1,000,000 cubes, 0 invalid, 0 failed, avg length 31.343, max 41,
                3.98 s clean repeat (first run, 6.16 s, had the throwaway Python prototype
                from the derivation step still competing for CPU; it was then stopped).

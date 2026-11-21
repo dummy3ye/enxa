@@ -4,6 +4,9 @@
 //! the distance to the goal and the best move for every coordinate. Solving the stage is then
 //! pure table lookups: `x -> best[x] -> table[x*18 + best[x]] -> ...` until a goal is reached.
 //! No search, no branching on the hot path. Chain several stages to solve a whole cube.
+//!
+//! Owns: the reusable stage BFS (`DescentStage`) and table element abstraction.
+//! Must NOT: define stages, build cube tables, or know about the CLI.
 
 use cubecore::Move;
 
@@ -28,6 +31,8 @@ impl TableIndex for u32 {
 }
 
 pub struct DescentStage {
+    /// Kept for the BFS invariant check in this module's tests; not needed by descent.
+    #[allow(dead_code)]
     dist: Vec<u8>,
     best: Vec<u8>,
 }
@@ -75,6 +80,7 @@ impl DescentStage {
     }
 
     #[inline]
+    #[allow(dead_code)]
     pub fn dist(&self, x: usize) -> u8 {
         self.dist[x]
     }
@@ -93,8 +99,7 @@ impl DescentStage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cubecore::coord::N_TWIST;
-    use cubecore::tables::MoveTables;
+    use cubecore::{MoveTables, N_TWIST};
 
     #[test]
     fn twist_descent_reaches_goal_in_dist_steps() {

@@ -1,7 +1,7 @@
-use cubecore::moves::random_alg;
-use cubecore::rng::Rng;
-use cubecore::solver::Solver;
-use cubecore::CubieCube;
+//! exa integration tests: optimality oracle behavior on short scrambles.
+//! Owns: exa-level validity checks. Must NOT: benchmark or weaken the optimality claim.
+
+use cubecore::{random_alg, CubieCube, Rng, Solver};
 use exa::Exa;
 
 #[test]

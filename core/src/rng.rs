@@ -1,4 +1,6 @@
 //! Tiny deterministic RNG (xorshift64*). Deterministic seeds make benchmarks reproducible.
+//!
+//! Owns: seeded pseudo-random integers. Must NOT: sample cube states or depend on other modules.
 
 #[derive(Clone, Debug)]
 pub struct Rng(u64);
@@ -13,7 +15,7 @@ impl Rng {
     }
 
     #[inline]
-    pub fn next_u64(&mut self) -> u64 {
+    pub(crate) fn next_u64(&mut self) -> u64 {
         let mut x = self.0;
         x ^= x >> 12;
         x ^= x << 25;

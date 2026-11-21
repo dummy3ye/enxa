@@ -4,7 +4,8 @@ Status key: [x] done, [ ] todo. Update this file in the same change that finishe
 
 ## M0: scaffold
 - [x] workspace, crates, CI, agent instructions
-- [x] **first compile + `cargo test --workspace --release` green** (scaffold was written without a compiler; this is task #1)
+- [x] **first compile + `cargo test --workspace --release` green** (the scaffold was written without a toolchain; this was fixed before M1)
+- [x] pure structural refactor into module ownership layout (EXP-002)
 
 ## M1: core (written)
 - [x] cubie model, 18 moves (compile-time), inverse, verify, random

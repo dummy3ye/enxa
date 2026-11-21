@@ -1,6 +1,7 @@
 # Design and conventions
 
-These are load-bearing. Changing any of them means changing `core/`, every table, and `verify/tests/core.rs` together.
+These are load-bearing. Changing any of them means changing `core/`, every table, and
+`verify/tests/{cube,coords,facelets}.rs` together.
 
 ## Cube model (cubie level, Kociemba conventions)
 
@@ -33,9 +34,15 @@ Move tables: `table[coord * 18 + move] -> coord`, `u16`.
 
 ## Validation history
 
-Before the first compile, these properties were verified with an independent Python port of the same tables: every move has order 4; `R U R' U'` has order 6; the 20-move superflip algorithm yields exactly "all edges flipped"; facelet round-trips; coordinate encode/decode round-trips; move tables agree with real cube moves; `inverse()` is a true inverse. The Rust tests in `verify/tests/core.rs` re-assert all of these.
+Before the first compile, these properties were verified with an independent Python port of the same tables: every move has order 4; `R U R' U'` has order 6; the 20-move superflip algorithm yields exactly "all edges flipped"; facelet round-trips; coordinate encode/decode round-trips; move tables agree with real cube moves; `inverse()` is a true inverse. The Rust tests in `verify/tests/{cube,coords,facelets}.rs` re-assert all of these.
+
+## Additional coordinates implemented for M3
+
+- Edge permutation pieces and the half-turn edge-rank used by enso stage 4.
+- Tetrad/edge-orbit patterns and corner left-coset classes for enso stage 3.
+- Exact G3 membership indices used by `Enso::solve_into`.
 
 ## Planned (not yet implemented)
 
 - 48-element symmetry group (and inverse) with symmetry-reduced coordinates: needed for exa's meet-in-the-middle tables.
-- More coordinates: edge permutation pieces, UD-slice sorted, coset coordinates for H = <U, D, R2, L2, F2, B2>.
+- UD-slice sorted coordinate.

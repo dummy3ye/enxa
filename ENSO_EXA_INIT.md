@@ -1,65 +1,52 @@
-# enxa: full project initialization
+# enxa: historical initialization snapshot
 
-Everything needed to start the repo, in one file: every source file, config, doc, and the **agent instructions** (`AGENTS.md`, `CLAUDE.md`, per-tool `AGENTS.md`).
+> **Do not run this file.** It is preserved only as a record of the original bootstrap.
+> Its embedded source, status claims and unpack instructions are stale: they describe the
+> pre-M3 scaffold and would overwrite the current split layout. The current layout is
+> `docs/ARCHITECTURE.md`; current status is in `README.md` and `docs/ROADMAP.md`.
+>
+> This snapshot says "enso is a stub" and "Rust has not been compiled". Both were true
+> when it was written and are false now. EXP-001 records a clean build, 21 passing tests,
+> the 1,000,000-cube gate and measured enso/exa results.
 
-> **Honest status.** The cube core (moves, coordinates, facelets, inverse) was validated against an independent Python port: every move has order 4, `R U R' U'` has order 6, the 20-move superflip algorithm produces exactly "all edges flipped", facelets and coordinates round-trip, and move tables agree with real moves. The **Rust itself has not been compiled** (no toolchain where this was written). Expect a few small compile errors on the first build. Step 1 below handles that.
-> **enso is a stub.** The solver logic for the speed engine (milestone M3) is not written yet; only its building block (`DescentStage`) and design are. **exa has a working IDA\* baseline** (the reference oracle).
+## 1. Historical unpack instructions (do not run)
 
-## 1. Unpack and verify
+The original file contained a Python extractor here. It has been removed deliberately:
+running it would restore `core/src/coord.rs`, `verify/tests/core.rs`, CLI code inside both
+`main.rs` files, and the old stub status. Nothing in this document should be executed.
 
-Save this file as `ENSO_EXA_INIT.md`, then:
-
-```bash
-python3 - ENSO_EXA_INIT.md << 'PY'
-import re, sys, pathlib
-text = open(sys.argv[1]).read()
-f = chr(96) * 5
-pat = re.compile(r"^### " + chr(96) + r"([^" + chr(96) + r"\n]+)" + chr(96) + r"\n\n" + f + r"[a-z]*\n(.*?)\n" + f + r"$", re.M | re.S)
-files = pat.findall(text)
-for path, body in files:
-    p = pathlib.Path(".") / path
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(body + "\n")
-    if path.endswith(".sh"):
-        p.chmod(0o755)
-print(f"wrote {len(files)} files into .")
-PY
-
-git init
-cargo test --workspace --release      # FIRST TASK: make this green
-```
-
-If it fails to compile, fix the errors with minimal edits. Do not change the tests or the cube conventions to make it pass. Then:
+Current healthy checks are:
 
 ```bash
+./scripts/check.sh
+cargo test -p verify --release --test gate -- --ignored --nocapture
 cargo run --release -p exa -- --scramble "R U R' U' F2 D L"
 cargo run --release -p benchkit -- --solver exa --n 50 --depth 8 --seed 1
 ```
 
-## 2. What's in the box
+## 2. Current box (historical snapshot content follows)
 
 ```
 enxa/
 ├── README.md  AGENTS.md  CLAUDE.md          project + agent instructions
-├── Cargo.toml  rust-toolchain.toml  .cargo/config.toml
-├── core/      cubecore: cubies, moves, coordinates, tables, facelets, RNG, Solver trait
-├── exa/       optimal solver: IDA* baseline (+ CLI)         [working baseline]
-├── enso/      speed engine: DescentStage + stub (+ CLI)     [stub]
+├── Cargo.toml  rust-toolchain.toml  .cargo/config.toml  rustfmt.toml  .editorconfig
+├── core/      cubecore: cubies, moves, coord/, facelets, RNG, Solver trait
+├── exa/       optimal solver: ida.rs, heuristic.rs, cli.rs, tiny main.rs
+├── enso/      speed engine: solver.rs, subgroup.rs, tables.rs, chain.rs, stages/, cli.rs, tiny main.rs
 ├── bench/     benchkit: reproducible benchmark harness
-├── verify/    correctness tests (the gate for every change)
-├── docs/      DESIGN, ENSO, EXA, ROADMAP, BENCHMARKING, EXPERIMENTS
-├── scripts/check.sh
+├── verify/    tests: cube, coords, facelets, exa, enso, gate
+├── docs/      README, ARCHITECTURE, DESIGN, ENSO, EXA, ROADMAP, BENCHMARKING, EXPERIMENTS
+├── scripts/check.sh  scripts/namelint.sh
 └── .github/workflows/ci.yml
 ```
 
 ## 3. Kickoff prompts for agents
 
-**Agent 1: make it build (do this first)**
+**Agent 1: make it build (historical prompt; M0 is now complete)**
 ```
-Read AGENTS.md fully. Run `cargo build --workspace --release && cargo test --workspace --release`.
-The scaffold was written without a compiler. Fix compile errors with minimal edits. Never weaken or
-change tests or cube conventions. When green, make clippy clean, switch scripts/check.sh and CI to
--D warnings, tick M0 in docs/ROADMAP.md, and report in the format AGENTS.md specifies.
+The original prompt said the scaffold was written without a compiler. That is no longer true:
+`cargo build --workspace --release` and `cargo test --workspace --release` are green, and
+clippy already runs with `-D warnings` in scripts/check.sh and CI. Current layout: docs/ARCHITECTURE.md.
 ```
 
 **Agent 2: exa baseline curve (M2)**
@@ -97,7 +84,7 @@ invariant, then the stages, then Enso::solve with zero allocation. Gate: 1,000,0
 | `core/src/rng.rs` | 26 |
 | `core/src/moves.rs` | 106 |
 | `core/src/cubie.rs` | 256 |
-| `core/src/coord.rs` | 134 |
+| `core/src/coord.rs` (historical; now `core/src/coord/`) | 134 |
 | `core/src/tables.rs` | 45 |
 | `core/src/facelet.rs` | 148 |
 | `core/src/solver.rs` | 11 |
@@ -113,7 +100,7 @@ invariant, then the stages, then Enso::solve with zero allocation. Gate: 1,000,0
 | `bench/src/main.rs` | 86 |
 | `verify/Cargo.toml` | 12 |
 | `verify/src/lib.rs` | 1 |
-| `verify/tests/core.rs` | 125 |
+| `verify/tests/core.rs` (historical; now `cube/coords/facelets.rs`) | 125 |
 | `verify/tests/exa.rs` | 34 |
 | `docs/DESIGN.md` | 41 |
 | `docs/ENSO.md` | 50 |
@@ -142,22 +129,18 @@ Language: **Rust**, zero third-party dependencies in `core`. Hand-tuned SIMD/asm
 
 ## Status
 
-**Milestone M1 done (scaffold + core). M2 baseline written. enso is a stub.** See `docs/ROADMAP.md`.
+**Current status:** M1, M2 and M3 are complete. enso is **not** a stub. See `docs/ROADMAP.md`.
 
-> Read this before anything else: this scaffold was authored in an environment with **no Rust toolchain**, so it has **not been compiled yet**. The cube math (move definitions, coordinates, facelets, inverse) was independently validated by a line-for-line Python port. Your first command should be:
->
-> ```
-> cargo test --workspace --release
-> ```
->
-> Fix any compile errors first (expect a few small ones). Nothing else starts before that is green.
+> Historical note: the original scaffold was authored without a Rust toolchain. It was later
+> compiled and tested; the first clean build is recorded in `docs/EXPERIMENTS.md` (EXP-001).
+> Start with `./scripts/check.sh` and the current layout in `docs/ARCHITECTURE.md`.
 
 ## Layout
 
 ```
-core/     shared cube model: cubies, moves, coordinates, move tables, facelets, RNG, Solver trait
-enso/     speed engine (stub + DescentStage building block)
-exa/      optimal solver (IDA* baseline = reference oracle)
+core/     shared cube model: cubies, moves, coord/, move tables, facelets, RNG, Solver trait
+enso/     speed engine: solver.rs, subgroup.rs, tables.rs, chain.rs, stages/, cli.rs, tiny main.rs
+exa/      optimal solver: ida.rs, heuristic.rs, cli.rs, tiny main.rs
 bench/    reproducible benchmark harness (crate name: benchkit)
 verify/   correctness tests, the gate for every change
 docs/     design, roadmap, benchmarking rules, experiment log
@@ -200,7 +183,7 @@ cargo build --workspace --release
 cargo test  --workspace --release
 ```
 
-The scaffold was written without a compiler. If this fails, **fixing it is your first and only task**. Fix compile errors with minimal edits; never "fix" a failing correctness test by changing the test or the cube conventions. If a test fails, the code is wrong until proven otherwise.
+The scaffold was originally written without a toolchain, but now compiles cleanly. If this step ever fails, fixing it is your first and only task. Fix compile errors with minimal edits; never "fix" a failing correctness test by changing the test or the cube conventions. If a test fails, the code is wrong until proven otherwise.
 
 ## Commands
 
@@ -208,10 +191,12 @@ The scaffold was written without a compiler. If this fails, **fixing it is your 
 |------|---------|
 | Everything healthy? | `./scripts/check.sh` |
 | Tests | `cargo test --workspace --release` |
+| enso 1M gate | `cargo test -p verify --release --test gate -- --ignored --nocapture` |
+| Solve with enso | `cargo run --release -p enso -- --scramble "R U R' U'"` |
 | Solve with exa | `cargo run --release -p exa -- --scramble "R U R' U'"` |
 | Benchmark | `cargo run --release -p benchkit -- --solver exa --n 100 --seed 1 --depth 8` |
 
-After the first clean compile, make clippy clean and then change `scripts/check.sh` and CI to `-D warnings`.
+Clippy is already clean with `-D warnings` in both `scripts/check.sh` and CI.
 
 ## Hard rules (violating any of these is a failure)
 
@@ -240,19 +225,23 @@ The goal is to find approaches better than the standard ones, and some will fail
 - Metric: **HTM** (all 18 face turns cost 1). Max optimal length is 20 (God's number).
 - Faces in order **U R F D L B**. Move `Move(face*3 + power-1)`; power 1 = clockwise, 2 = half, 3 = counter-clockwise.
 - Coordinates are `usize` at the API, `u16` in tables. Table layout: `table[coord * 18 + move]`.
-- Solvers implement `cubecore::solver::Solver`.
-- Determinism: all randomness goes through `cubecore::rng::Rng` with an explicit seed.
+- Solvers implement `cubecore::Solver`.
+- Determinism: all randomness goes through `cubecore::Rng` with an explicit seed.
 
 ## Where things live
 
 | You want to... | Edit |
 |----------------|------|
-| change cube model, moves, coordinates, tables | `core/` (and update `verify/tests/core.rs`) |
-| work on the speed engine | `enso/` (read `enso/AGENTS.md`) |
-| work on the optimal solver | `exa/` (read `exa/AGENTS.md`) |
-| change measurement | `bench/` (and `docs/BENCHMARKING.md`) |
-| add a correctness test | `verify/tests/` |
+| change cube model, moves, facelets, solver trait | `core/src/` (update `verify/tests/{cube,coords,facelets}.rs`) |
+| change a coordinate encoding | `core/src/coord/<name>.rs` and `coord/mod.rs` re-exports |
+| work on the speed engine | `enso/src/{solver,tables,subgroup,chain,stages}/` (read `enso/AGENTS.md`) |
+| change enso CLI | `enso/src/cli.rs`; keep `enso/src/main.rs` tiny |
+| work on the optimal solver | `exa/src/{ida,heuristic}.rs` (read `exa/AGENTS.md`) |
+| change exa CLI | `exa/src/cli.rs`; keep `exa/src/main.rs` tiny |
+| change measurement | `bench/src/main.rs` and `docs/BENCHMARKING.md` |
+| add a correctness test | `verify/tests/{cube,coords,facelets,enso,exa,gate}.rs` |
 | record an idea or result | `docs/EXPERIMENTS.md` |
+| understand the layout | `docs/ARCHITECTURE.md` |
 
 ## Definition of done (any change)
 
@@ -876,7 +865,7 @@ const fn build_moves() -> [CubieCube; 18] {
 pub const MOVES: [CubieCube; 18] = build_moves();
 `````
 
-### `core/src/coord.rs`
+### `core/src/coord.rs` (historical; now split into `core/src/coord/`)
 
 `````rust
 //! Coordinates: compact integer encodings of parts of the cube state.
@@ -1697,9 +1686,8 @@ mod tests {
 
 `````rust
 fn main() {
-    eprintln!("enso: lookup-chain solver is NOT IMPLEMENTED YET (milestone M3).");
-    eprintln!("See docs/ENSO.md and docs/ROADMAP.md.");
-    std::process::exit(2);
+    // Historical stub content. Current enso CLI lives in enso/src/cli.rs; main.rs
+    // only calls cli::run() and returns its status. See enso/src/solver.rs for the solver.
 }
 `````
 
@@ -1844,7 +1832,7 @@ enso = { path = "../enso" }
 //! Intentionally empty. All tests live in `tests/`.
 `````
 
-### `verify/tests/core.rs`
+### `verify/tests/core.rs` (historical; now `cube.rs`, `coords.rs`, `facelets.rs`)
 
 `````rust
 use cubecore::coord::*;
@@ -2023,7 +2011,8 @@ fn rejects_unsolvable_cubes() {
 `````markdown
 # Design and conventions
 
-These are load-bearing. Changing any of them means changing `core/`, every table, and `verify/tests/core.rs` together.
+These are load-bearing. Changing any of them means changing `core/`, every table, and
+`verify/tests/{cube,coords,facelets}.rs` together.
 
 ## Cube model (cubie level, Kociemba conventions)
 
@@ -2056,7 +2045,12 @@ Move tables: `table[coord * 18 + move] -> coord`, `u16`.
 
 ## Validation history
 
-Before the first compile, these properties were verified with an independent Python port of the same tables: every move has order 4; `R U R' U'` has order 6; the 20-move superflip algorithm yields exactly "all edges flipped"; facelet round-trips; coordinate encode/decode round-trips; move tables agree with real cube moves; `inverse()` is a true inverse. The Rust tests in `verify/tests/core.rs` re-assert all of these.
+Before the first compile, these properties were verified with an independent Python port of the same tables: every move has order 4; `R U R' U'` has order 6; the 20-move superflip algorithm yields exactly "all edges flipped"; facelet round-trips; coordinate encode/decode round-trips; move tables agree with real cube moves; `inverse()` is a true inverse. The Rust tests in `verify/tests/{cube,coords,facelets}.rs` re-assert all of these.
+
+## Additional coordinates implemented for M3
+
+Edge permutation pieces, tetrad/edge-orbit patterns, corner left-coset classes and exact
+G3 membership indices are implemented for enso stage 3 and stage 4.
 
 ## Planned (not yet implemented)
 
@@ -2175,7 +2169,7 @@ Status key: [x] done, [ ] todo. Update this file in the same change that finishe
 
 ## M0: scaffold
 - [x] workspace, crates, CI, agent instructions
-- [ ] **first compile + `cargo test --workspace --release` green** (scaffold was written without a compiler; this is task #1)
+- [x] **first compile + `cargo test --workspace --release` green** (the scaffold was written without a toolchain; this was fixed before M1)
 
 ## M1: core (written)
 - [x] cubie model, 18 moves (compile-time), inverse, verify, random
@@ -2234,7 +2228,7 @@ Status key: [x] done, [ ] todo. Update this file in the same change that finishe
 3. **Warm up**, then measure. Report median and p99, not just the mean. Report failures and invalid solutions.
 4. **Verify every solution** (the harness does). A faster solver that returns a bad solution has no time.
 5. **Separate** startup (table build/load) from per-solve time. Report both.
-6. **Sub-microsecond timing:** one `Instant::now()` pair costs tens of ns. For enso, time batches (N solves, divide) and report the batch method. TODO: add `--batch` to `benchkit`.
+6. **Sub-microsecond timing:** one `Instant::now()` pair costs tens of ns. For enso, also time batches (N solves, divide) and report the batch method; `benchkit --batch` is available.
 7. **Latency vs throughput** are different benchmarks. Label which one a number is.
 8. **Pin the machine:** close other loads, fix CPU frequency if you can, repeat 5 times, report the spread.
 9. **Compare fairly:** same metric, same input form (cubie vs facelets), same build flags class.

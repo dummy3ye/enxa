@@ -11,7 +11,15 @@
 
 ## Architecture direction (see `docs/ENSO.md`)
 
-Replace *search* with *table descent*: a chain of stages, each a precomputed best-move table over a coordinate (`chain::DescentStage` is the building block). A solve is a few dozen dependent loads, no tree search, no branching on cube data except stage transitions.
+Replace *search* with *table descent*: a chain of stages, each a precomputed best-move table over a coordinate (`src/chain.rs::DescentStage` is the building block). A solve is a few dozen dependent loads, no tree search, no branching on cube data except stage transitions.
+
+Current layout: `src/solver.rs` owns `Enso` and the descent; `src/tables.rs` builds tables;
+`src/subgroup.rs` owns subgroup predicates and generator sets; `src/stages/` owns the four
+stage definitions; `src/cli.rs` owns argument parsing; `src/main.rs` is only an entry point.
+The G2→G3 generator set is `<U,D,L2,R2,F2,B2>`, not L/R quarter turns.
+
+The 1M gate lives in `../verify/tests/gate.rs`:
+`cargo test -p verify --release --test gate -- --ignored --nocapture`.
 
 ## Rules specific to enso
 

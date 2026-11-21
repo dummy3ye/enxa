@@ -1,0 +1,3 @@
+# Stable rustfmt settings. Keep cargo fmt clean with the pinned Rust toolchain.
+edition = "2021"
+max_width = 100

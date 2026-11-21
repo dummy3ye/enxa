@@ -12,7 +12,10 @@ The fewest possible moves, **provably**. HTM metric.
 
 ## Baseline (M2, written): IDA* with admissible projections
 
-`exa::ida::Exa`. Heuristic = max of exact distances in three projections: (twist, slice), (flip, slice), (corner perm). Exact, simple, correct, slow on deep states. It is the oracle every other engine is tested against.
+`exa::Exa` (implemented in `exa/src/ida.rs`). The pruning tables live in
+`exa/src/heuristic.rs`; CLI work lives in `exa/src/cli.rs`. Heuristic = max of exact
+distances in three projections: (twist, slice), (flip, slice), (corner perm). Exact,
+simple, correct, slow on deep states. It is the oracle every other engine is tested against.
 
 ## Ideas to try (each is a hypothesis with a kill criterion)
 

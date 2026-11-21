@@ -19,7 +19,11 @@ while x not goal:  m = best[x];  emit m;  x = move_table[x][m]
 
 Each step is a couple of dependent loads and no branching on cube data. A whole solve is a few dozen steps. The chain is fixed; stages must keep the earlier stages' invariants (the standard group-chain argument, as in Thistlethwaite's algorithm).
 
-`enso::chain::DescentStage` is the generic building block (built and unit-tested). Variant A is implemented in `enso::variant_a`: four descent stages with subgroup assertions after each one, and an allocation-free `Enso::solve_into` that writes into a fixed buffer. Measured results are in `docs/EXPERIMENTS.md` (EXP-001).
+`DescentStage` in `enso/src/chain.rs` is the generic building block (built and unit-tested).
+Variant A lives in `enso/src/solver.rs`, `subgroup.rs`, `tables.rs` and `enso/src/stages/`:
+four descent stages with subgroup assertions after each one, and an allocation-free
+`Enso::solve_into` that writes into a fixed buffer. CLI work is isolated in `enso/src/cli.rs`;
+`main.rs` only calls it. Measured results are in `docs/EXPERIMENTS.md` (EXP-001).
 
 ### Variant A stage chain (derived and verified, not assumed)
 

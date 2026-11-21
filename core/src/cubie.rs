@@ -4,6 +4,9 @@
 //! Edges:   UR UF UL UB DR DF DL DB FR FL BL BR (0..12)
 //!
 //! `a.multiply(&b)` means "apply a, then apply b".
+//!
+//! Owns: cubie arrays, multiplication, inversion, verification, random states.
+//! Must NOT: parse strings, encode coordinates, or know about solvers.
 
 use crate::moves::Move;
 use crate::rng::Rng;

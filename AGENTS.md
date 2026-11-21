@@ -14,7 +14,7 @@ cargo build --workspace --release
 cargo test  --workspace --release
 ```
 
-The scaffold was written without a compiler. If this fails, **fixing it is your first and only task**. Fix compile errors with minimal edits; never "fix" a failing correctness test by changing the test or the cube conventions. If a test fails, the code is wrong until proven otherwise.
+The scaffold was originally written without a toolchain, but now compiles cleanly. If this step ever fails, fixing it is your first and only task. Fix compile errors with minimal edits; never "fix" a failing correctness test by changing the test or the cube conventions. If a test fails, the code is wrong until proven otherwise.
 
 ## Commands
 
@@ -22,10 +22,13 @@ The scaffold was written without a compiler. If this fails, **fixing it is your 
 |------|---------|
 | Everything healthy? | `./scripts/check.sh` |
 | Tests | `cargo test --workspace --release` |
+| enso 1M gate | `cargo test -p verify --release --test gate -- --ignored --nocapture` |
+| Solve with enso | `cargo run --release -p enso -- --scramble "R U R' U'"` |
 | Solve with exa | `cargo run --release -p exa -- --scramble "R U R' U'"` |
 | Benchmark | `cargo run --release -p benchkit -- --solver exa --n 100 --seed 1 --depth 8` |
 
-After the first clean compile, make clippy clean and then change `scripts/check.sh` and CI to `-D warnings`.
+Clippy is already clean with `-D warnings` in both `scripts/check.sh` and CI. `scripts/namelint.sh`
+rejects Rust filenames containing `_` or `-` and runs in both places.
 
 ## Hard rules (violating any of these is a failure)
 
@@ -54,19 +57,24 @@ The goal is to find approaches better than the standard ones, and some will fail
 - Metric: **HTM** (all 18 face turns cost 1). Max optimal length is 20 (God's number).
 - Faces in order **U R F D L B**. Move `Move(face*3 + power-1)`; power 1 = clockwise, 2 = half, 3 = counter-clockwise.
 - Coordinates are `usize` at the API, `u16` in tables. Table layout: `table[coord * 18 + move]`.
-- Solvers implement `cubecore::solver::Solver`.
-- Determinism: all randomness goes through `cubecore::rng::Rng` with an explicit seed.
+- Solvers implement `cubecore::Solver`.
+- Determinism: all randomness goes through `cubecore::Rng` with an explicit seed.
 
 ## Where things live
 
 | You want to... | Edit |
 |----------------|------|
-| change cube model, moves, coordinates, tables | `core/` (and update `verify/tests/core.rs`) |
-| work on the speed engine | `enso/` (read `enso/AGENTS.md`) |
-| work on the optimal solver | `exa/` (read `exa/AGENTS.md`) |
-| change measurement | `bench/` (and `docs/BENCHMARKING.md`) |
-| add a correctness test | `verify/tests/` |
+| change cube model, moves, facelets, solver trait | `core/src/` (and update `verify/tests/{cube,coords,facelets}.rs`) |
+| change a coordinate encoding | `core/src/coord/<name>.rs` and `coord/mod.rs` re-exports |
+| work on the speed engine | `enso/src/{solver.rs,tables.rs,subgroup.rs,chain.rs,stages/}` (read `enso/AGENTS.md`) |
+| change enso CLI | `enso/src/cli.rs`; keep `enso/src/main.rs` tiny |
+| work on the optimal solver | `exa/src/{ida.rs,heuristic.rs}` (read `exa/AGENTS.md`) |
+| change exa CLI | `exa/src/cli.rs`; keep `exa/src/main.rs` tiny |
+| change measurement | `bench/src/main.rs` and `docs/BENCHMARKING.md` |
+| add a correctness test | `verify/tests/{cube,coords,facelets,enso,exa,gate}.rs` |
+| run the 1M enso gate | `verify/tests/gate.rs`; command is `--test gate` |
 | record an idea or result | `docs/EXPERIMENTS.md` |
+| understand the layout | `docs/ARCHITECTURE.md` |
 
 ## Definition of done (any change)
 

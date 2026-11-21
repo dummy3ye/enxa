@@ -1,5 +1,8 @@
 //! 54-char facelet strings. Order: U R F D L B, nine stickers each, as in Kociemba's tools.
 //! Solved = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB".
+//!
+//! Owns: the sticker mapping between 54-character strings and cubies.
+//! Must NOT: solve, search, or depend on move tables.
 
 use crate::cubie::CubieCube;
 
