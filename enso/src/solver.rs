@@ -3,7 +3,7 @@
 //! Owns: fixed-buffer descent, stage sequencing, subgroup assertions and the `Solver` impl.
 //! Must NOT: build tables, parse CLI arguments, or use search or `dyn` dispatch.
 
-use crate::chain::{DescentStage, TableIndex};
+use crate::chain::PackedStage;
 use crate::stages::{orient, r#final, slicecorner, tetrad};
 use crate::subgroup::{edge_rank, in_g1, in_g2};
 use crate::tables::Tables;
@@ -13,9 +13,8 @@ use std::time::Duration;
 /// Upper bound on emitted moves. Every stage's BFS depth is far below this.
 pub const MAX_SOLUTION_LEN: usize = 128;
 
-fn descend<T: TableIndex>(
-    st: &DescentStage,
-    table: &[T],
+fn descend(
+    st: &PackedStage,
     mut x: usize,
     goal: usize,
     c: &mut CubieCube,
@@ -23,7 +22,7 @@ fn descend<T: TableIndex>(
     n: &mut usize,
 ) -> Result<(), &'static str> {
     while x != goal {
-        let (m, nx) = st.step(x, table).ok_or("stuck before stage goal")?;
+        let (m, nx) = st.step(x).ok_or("stuck before stage goal")?;
         if *n >= out.len() {
             return Err("solution buffer overflow");
         }
@@ -64,20 +63,11 @@ impl Enso {
         let mut c = *cube;
         let mut n = 0usize;
 
-        descend(
-            &t.st1,
-            &t.t1,
-            orient::coord(&c),
-            orient::GOAL,
-            &mut c,
-            out,
-            &mut n,
-        )?;
+        descend(&t.st1, orient::coord(&c), orient::GOAL, &mut c, out, &mut n)?;
         debug_assert!(in_g1(&c));
 
         descend(
             &t.st2,
-            &t.t2,
             slicecorner::coord(&c),
             slicecorner::GOAL,
             &mut c,
@@ -88,7 +78,6 @@ impl Enso {
 
         descend(
             &t.st3,
-            &t.t3,
             tetrad::encode_g2(&c, &t.corner_class),
             t.goal3,
             &mut c,
@@ -106,7 +95,6 @@ impl Enso {
         }
         descend(
             &t.st4,
-            &t.t4,
             ci as usize * r#final::NEP + ei as usize,
             r#final::GOAL,
             &mut c,
@@ -147,7 +135,6 @@ impl Tables {
         let mut n = 0;
         descend(
             &self.st1,
-            &self.t1,
             orient::coord(&c),
             orient::GOAL,
             &mut c,
@@ -158,7 +145,6 @@ impl Tables {
         assert!(in_g1(&c));
         descend(
             &self.st2,
-            &self.t2,
             slicecorner::coord(&c),
             slicecorner::GOAL,
             &mut c,
@@ -169,7 +155,6 @@ impl Tables {
         assert!(in_g2(&c));
         descend(
             &self.st3,
-            &self.t3,
             tetrad::encode_g2(&c, &self.corner_class),
             self.goal3,
             &mut c,
@@ -180,7 +165,6 @@ impl Tables {
         assert!(self.in_g3(&c));
         descend(
             &self.st4,
-            &self.t4,
             self.cp_idx[c.cperm()] as usize * r#final::NEP + self.ep_idx[edge_rank(&c.ep)] as usize,
             r#final::GOAL,
             &mut c,
