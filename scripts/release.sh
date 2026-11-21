@@ -47,7 +47,7 @@ echo "== checksums =="
 
 for level in v2 v3; do
   archive="$root/dist/enxa-${version}-x86_64-linux-${level}.tar.gz"
-  unpacked="$(mktemp -d /tmp/opencode/enxa-smoke.XXXXXX)"
+  unpacked="$(mktemp -d "${TMPDIR:-/tmp}/enxa-smoke.XXXXXX")"
   tar xzf "$archive" -C "$unpacked"
   echo "== smoke test $level =="
   "$unpacked/enso" --version

@@ -42,7 +42,7 @@ CARGO_TARGET_DIR="$cargo_target_dir" cargo build \
   -p benchkit
 
 bindir="$target_dir/x86_64-unknown-linux-gnu/release"
-stage="$(mktemp -d /tmp/opencode/enxa-package.XXXXXX)"
+stage="$(mktemp -d "${TMPDIR:-/tmp}/enxa-package.XXXXXX")"
 cp "$bindir/enso" "$bindir/exa" "$bindir/benchkit" "$stage/"
 cp README.md LICENSE-MIT LICENSE-APACHE "$stage/"
 
