@@ -31,7 +31,7 @@ Notes:       <what you learned>
 | EXP-008 | validated prebuilt packed tables | startup 426 ms -> 13.2 ms warm; p50 unchanged (+0.1% cubie, +0.5% facelets) | keep |
 | EXP-009 step 0 | re-profile after table packing/cache | dependent loads still dominate; prefetch and macro entries tried, huge pages skipped | guide only |
 | EXP-010 | prefetch next packed entry | cubie p50 -11.0%, p99 -10.4%; facelets p50 -5.1%, p99 -6.3% | keep, default-on |
-| EXP-011 | two-move macro entries | pending | planned |
+| EXP-011 | two-move macro entries | cubie p50 +0.3% (fail), facelets p50 -4.9%; 2.0x table bytes | revert |
 
 ## Log
 
@@ -95,19 +95,28 @@ Notes:       The prefetch call is behind the `prefetch` feature with an inline S
 ### EXP-011: two-move macro entries
 Date:        2026-11-22
 Tool:        enso
-Status:      hypothesis recorded before implementation
+Status:      implemented, benchmarked, reverted
 Hypothesis:  A stage entry that stores two consecutive `(move, next)` pairs halves the number of
              dependent table loads per stage. The extra bytes may stay within LLC, reducing p50
              and p99 together.
 Kill if:     Interleaved A/B shows p50 or p99 regressing, either metric improves by less than 3%,
              any solution is invalid, or the 1M gate fails. Two consecutive attempts below 3%
              stop this optimization line.
-Setup:       Feature `macrosteps` on top of the EXP-008 `main`; A = baseline without the feature,
-             B = same binary built with it. v3 flags, seed 1, n=100000, cubie and `--facelets`,
-             at least three A/B/B/A pairs. Table bytes and cache misses are reported.
-Result:      pending
-Decision:    pending
-Notes:       The default build and all committed table files remain one-move packed stages.
+Setup:       A = default EXP-010 build (prefetch on, macro off), B = same tree with
+             `--features macrosteps`. Both v3 flags, seed 1, n=100000, cubie and `--facelets`,
+             three A/B/B/A pairs with all cores pinned to performance/3.40 GHz. Logs:
+             `/tmp/opencode/enxa-perf/ab_exp011_{cubie,facelets}.log`.
+Result:      Cubie p50 2002 -> 2008.5 ns (+0.3%, no gain), p99 5157 -> 4781.5 ns (-7.3%);
+             facelets p50 2938 -> 2795 ns (-4.9%), p99 8078 -> 6932.5 ns (-14.2%). The facelet
+             `perf stat` run showed cache misses 4.63M -> 6.17M, LLC misses 0.50M -> 1.39M, L1
+             misses 4.43M -> 6.78M and dTLB misses 69k -> 177k. Macro tables add 4 bytes per
+             packed entry (7,110,260 bytes), taking in-memory hot tables from 7,258,868 to
+             14,369,128 bytes. All 24 runs solved 100,000 cubes with 0 failed / 0 INVALID.
+Decision:    revert
+Notes:       The keep rule requires p50 AND p99 to improve; cubie p50 did not. This is one
+             sub-3% attempt and the optimization line is stopped here rather than iterated:
+             the extra random-access array increases LLC/DTLB pressure. The default build and
+             all committed table files remain one-move packed stages.
 
 ### EXP-008: validated prebuilt packed tables
 Date:        2026-11-22
