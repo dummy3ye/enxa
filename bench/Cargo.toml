@@ -10,3 +10,6 @@ description = "Reproducible benchmark harness for enso and exa"
 cubecore = { path = "../core" }
 enso = { path = "../enso" }
 exa = { path = "../exa" }
+
+[features]
+prefetch = ["enso/prefetch"]

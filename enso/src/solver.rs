@@ -34,6 +34,8 @@ fn descend(
 ) -> Result<(), &'static str> {
     while x != goal {
         let (m, nx) = st.step(x).ok_or("stuck before stage goal")?;
+        #[cfg(feature = "prefetch")]
+        st.prefetch(nx);
         if *n >= out.len() {
             return Err("solution buffer overflow");
         }
@@ -191,6 +193,8 @@ impl Enso {
                 .st1
                 .step(flip)
                 .ok_or_else(|| "stuck before stage goal".to_string())?;
+            #[cfg(feature = "prefetch")]
+            t.st1.prefetch(nx);
             emit!(m);
             apply_parts(&mut parts, m.0, true);
             flip = nx;
@@ -203,6 +207,8 @@ impl Enso {
                 .st2
                 .step(x2)
                 .ok_or_else(|| "stuck before stage goal".to_string())?;
+            #[cfg(feature = "prefetch")]
+            t.st2.prefetch(nx);
             emit!(m);
             apply_parts(&mut parts, m.0, false);
             x2 = nx;
@@ -217,6 +223,8 @@ impl Enso {
                 .st3
                 .step(x3)
                 .ok_or_else(|| "stuck before stage goal".to_string())?;
+            #[cfg(feature = "prefetch")]
+            t.st3.prefetch(nx);
             emit!(m);
             apply_parts(&mut parts, m.0, false);
             x3 = nx;
@@ -234,6 +242,8 @@ impl Enso {
                 .st4
                 .step(x4)
                 .ok_or_else(|| "stuck before stage goal".to_string())?;
+            #[cfg(feature = "prefetch")]
+            t.st4.prefetch(nx);
             emit!(m);
             x4 = nx;
         }

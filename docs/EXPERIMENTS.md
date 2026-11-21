@@ -29,8 +29,85 @@ Notes:       <what you learned>
 | EXP-006 | rank at boundaries, drop incremental tables | facelets p50 +3.7%, p99 -16.0%; cache misses 44.2 -> 24.2/solve; tables -1.7 MB | iterate |
 | EXP-007 | cheap array updates, skip dead arrays | vs EXP-006 facelets p50 -7.8%; vs published v3 p50 -38.8%, p99 -52.0% | keep |
 | EXP-008 | validated prebuilt packed tables | startup 426 ms -> 13.2 ms warm; p50 unchanged (+0.1% cubie, +0.5% facelets) | keep |
+| EXP-009 step 0 | re-profile after table packing/cache | dependent loads still dominate; prefetch and macro entries tried, huge pages skipped | guide only |
+| EXP-010 | prefetch next packed entry | cubie p50 -11.0%, p99 -10.4%; facelets p50 -5.1%, p99 -6.3% | keep, default-on |
+| EXP-011 | two-move macro entries | pending | planned |
 
 ## Log
+
+### EXP-009 step 0: re-profile the packed descent path
+Date:        2026-11-22
+Tool:        enso
+Status:      profiling recorded before any further optimization attempt
+Hypothesis:  With startup moved to a validated file, the remaining per-solve bottleneck should
+             still be dependent loads in the packed stages. If cache/DTLB events per solve are
+             small or do not dominate, prefetch, huge pages and macro entries are not worth
+             trying on this machine.
+Kill if:     This is a guide-only profile, not an optimization. It is invalid if the counters
+             cannot be read at `perf_event_paranoid=2` or if the n=0 baseline includes solves.
+Setup:       `main` after the EXP-008 merge, v3 benchkit binary, `perf stat` with cache-misses,
+             cache-references, LLC-load-misses, L1-dcache-load-misses and dTLB-load-misses,
+             n=0 versus n=100000 with seed 1 and a warm `ENSO_TABLES` file. Exact output will be
+             pasted below.
+Result:      `perf_event_paranoid=2`. n=0 baseline: 82,558 cache misses, 3,980 LLC misses,
+             234,041 L1 misses, 341 dTLB misses. n=100000 cubie: 1,910,733 cache misses,
+             827,327 LLC misses, 3,213,591 L1 misses, 30,019 dTLB misses. Per solve (after
+             subtracting n=0): 18.3 cache misses, 8.2 LLC misses, 29.8 L1 misses, 0.30 dTLB
+             misses. Facelet n=100000: 2,347,758 cache misses, 946,396 LLC misses, 3,628,696
+             L1 misses, 35,719 dTLB misses; per solve 22.6 / 9.4 / 34.0 / 0.35. The profile
+             still shows a dependent-load chain (tens of L1 misses and ~8-9 LLC misses per
+             solve), but dTLB pressure is negligible.
+Decision:    guide only
+Notes:       No code change was made from profiling alone. Prefetch and macro entries are
+             justified by the dependent loads; huge pages are not, because dTLB misses are only
+             ~0.3 per solve. Any later attempt needs its own hypothesis, interleaved A/B with
+             p50 AND p99, and the two-consecutive-<3% stop rule.
+
+### EXP-010: prefetch the next packed entry
+Date:        2026-11-22
+Tool:        enso
+Status:      implemented, benchmarked, kept; enabled by default
+Hypothesis:  Each packed lookup yields the next coordinate, so issuing one L2/L3 prefetch for
+             `entry[next]` while updating the cube arrays may hide part of the ~8-9 LLC misses
+             per solve without changing the solution or table layout.
+Kill if:     Interleaved A/B shows p50 or p99 regressing, either metric improves by less than 3%,
+             any solution is invalid, or the 1M gate fails. Two consecutive attempts below 3%
+             stop this optimization line.
+Setup:       Feature `prefetch` on top of the EXP-008 `main`; A = baseline without the feature,
+             B = same binary built with it. v3 flags, seed 1, n=100000, cubie and `--facelets`,
+             at least three A/B/B/A pairs. Safe scalar fallback remains the default.
+Result:      The first six-pair run was invalidated when the CPU was unplugged and its frequency
+             governor changed mid-run; those numbers were discarded. After the user replugged it
+             and all cores were pinned to `performance` with min=max=current 3,400,000 kHz and
+             EPP `performance`, the rerun gave cubie p50 2160.5 -> 1922 ns (-11.0%) and p99
+             6164 -> 5520 ns (-10.4%); facelets p50 2888 -> 2739.5 ns (-5.1%) and p99
+             8444.5 -> 7912.5 ns (-6.3%). All 24 runs solved 100,000 cubes with 0 failed /
+             0 INVALID. `cargo test --workspace --release --features enso/prefetch` passed;
+             `cargo test -p verify --release --test gate --features prefetch -- --ignored
+             --nocapture` reported 0 invalid / 0 failed, avg 31.343, max 41. Logs:
+             `/tmp/opencode/enxa-perf/ab_exp010_{cubie,facelets}.log`.
+Decision:    keep, enabled by default
+Notes:       The prefetch call is behind the `prefetch` feature with an inline SAFETY comment and
+             a non-x86 no-op; `--no-default-features` is the tested scalar reference and its 1M
+             gate also reported 0 invalid / 0 failed. This is an x86_64 intrinsic, not a new table
+             format, so committed table files remain valid.
+
+### EXP-011: two-move macro entries
+Date:        2026-11-22
+Tool:        enso
+Status:      hypothesis recorded before implementation
+Hypothesis:  A stage entry that stores two consecutive `(move, next)` pairs halves the number of
+             dependent table loads per stage. The extra bytes may stay within LLC, reducing p50
+             and p99 together.
+Kill if:     Interleaved A/B shows p50 or p99 regressing, either metric improves by less than 3%,
+             any solution is invalid, or the 1M gate fails. Two consecutive attempts below 3%
+             stop this optimization line.
+Setup:       Feature `macrosteps` on top of the EXP-008 `main`; A = baseline without the feature,
+             B = same binary built with it. v3 flags, seed 1, n=100000, cubie and `--facelets`,
+             at least three A/B/B/A pairs. Table bytes and cache misses are reported.
+Result:      pending
+Decision:    pending
+Notes:       The default build and all committed table files remain one-move packed stages.
 
 ### EXP-008: validated prebuilt packed tables
 Date:        2026-11-22

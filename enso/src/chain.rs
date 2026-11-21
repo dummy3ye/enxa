@@ -75,6 +75,27 @@ impl PackedStage {
         PackedStage { entry }
     }
 
+    /// Experimental next-entry prefetch; no effect in the default build.
+    #[cfg(all(feature = "prefetch", target_arch = "x86_64"))]
+    #[inline]
+    pub(crate) fn prefetch(&self, x: usize) {
+        if x < self.entry.len() {
+            // SAFETY: the pointer is to a live `u32` inside this stage's `Vec`; prefetching
+            // never dereferences it, and byte pointers have no alignment requirement.
+            unsafe {
+                std::arch::x86_64::_mm_prefetch(
+                    self.entry.as_ptr().add(x) as *const i8,
+                    std::arch::x86_64::_MM_HINT_T0,
+                )
+            };
+        }
+    }
+
+    /// Non-x86 fallback for the experimental feature.
+    #[cfg(all(feature = "prefetch", not(target_arch = "x86_64")))]
+    #[inline]
+    pub(crate) fn prefetch(&self, _x: usize) {}
+
     /// One dependent load yields both the move and the next coordinate.
     #[inline]
     pub fn step(&self, x: usize) -> Option<(Move, usize)> {

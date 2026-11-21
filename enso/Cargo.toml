@@ -10,6 +10,8 @@ description = "enso: absolute-fastest Rubik's Cube solver (any valid solution, m
 cubecore = { path = "../core" }
 
 [features]
-default = []
+default = ["prefetch"]
 # Opt-in hand-written SIMD / asm kernels. Only add after profiling proves a hot spot.
 asm = []
+# Next-entry software prefetch (EXP-010); `--no-default-features` is the safe scalar reference.
+prefetch = []

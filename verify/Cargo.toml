@@ -10,3 +10,6 @@ description = "Correctness tests: the gate every change must pass"
 cubecore = { path = "../core" }
 exa = { path = "../exa" }
 enso = { path = "../enso" }
+
+[features]
+prefetch = ["enso/prefetch"]
