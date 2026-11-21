@@ -1,0 +1,81 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      # Pinned to the exact SHAs verified on 2026-11-21.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: 1.97.1
+          components: rustfmt, clippy
+
+      - name: Verify repository health
+        run: |
+          bash scripts/namelint.sh
+          cargo fmt --all -- --check
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+          cargo test --workspace --release --locked
+          cargo test -p verify --release --locked --test gate -- --ignored --nocapture
+
+      - name: Build portable tarballs
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          bash scripts/package.sh "$version" v2
+          bash scripts/package.sh "$version" v3
+
+      - name: Write and verify checksums
+        run: |
+          cd dist
+          sha256sum enxa-*.tar.gz > SHA256SUMS
+          cat SHA256SUMS
+          sha256sum -c SHA256SUMS
+
+      - name: Smoke test archives
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          for level in v2 v3; do
+            archive="dist/enxa-${version}-x86_64-linux-${level}.tar.gz"
+            unpacked="$(mktemp -d)"
+            tar xzf "$archive" -C "$unpacked"
+            "$unpacked/enso" --version
+            "$unpacked/exa" --version
+            "$unpacked/benchkit" --version
+            cat "$unpacked/RELEASE-INFO.txt"
+          done
+
+      - name: Attest tarballs
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*.tar.gz
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-assets
+          path: |
+            dist/*.tar.gz
+            dist/SHA256SUMS
+
+      - name: Create pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          bash scripts/releasenotes.sh "$version" RELEASE_NOTES.md
+          gh release create "$GITHUB_REF_NAME" \
+            --title "enxa v${version}" \
+            --notes-file RELEASE_NOTES.md \
+            --prerelease \
+            dist/*.tar.gz dist/SHA256SUMS

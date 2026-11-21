@@ -1,6 +1,6 @@
 # Benchmarking rules
 
-1. **Release build only**: `cargo build --release`, flags from `.cargo/config.toml` (`target-cpu=native`). Record CPU model, OS, rustc version, commit.
+1. **Release build only**: use `./scripts/package.sh <version> <v2|v3>` for portable release binaries, or `RUSTFLAGS="-C target-cpu=native" cargo build --release` for local native experiments. Record CPU model, OS, rustc version, commit and the exact target-cpu flavor. Release builds never use `native`.
 2. **Fixed seeds.** Same seed = same cubes. Compare solvers on identical inputs.
 3. **Warm up**, then measure. Report median and p99, not just the mean. Report failures and invalid solutions.
 4. **Verify every solution** (the harness does). A faster solver that returns a bad solution has no time.

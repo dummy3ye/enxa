@@ -13,7 +13,8 @@ fn usage() -> ! {
          usage:\n  \
          exa --scramble \"R U R' U'\"\n  \
          exa --facelets <54 chars, order U R F D L B>\n  \
-         exa --depth N [--seed S]      random-walk scramble of N moves\n\n\
+         exa --depth N [--seed S]      random-walk scramble of N moves\n  \
+         exa --version\n\n\
          note: the baseline IDA* is exact but slow beyond ~12-13 moves (see docs/EXA.md)."
     );
     std::process::exit(2)
@@ -25,6 +26,10 @@ fn arg(args: &[String], i: usize) -> &str {
 
 pub fn run() {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.iter().any(|a| a == "--version") {
+        println!("exa {}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
     if args.is_empty() {
         usage();
     }

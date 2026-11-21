@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "benchkit"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "cubecore",
  "enso",
@@ -13,25 +13,25 @@ dependencies = [
 
 [[package]]
 name = "cubecore"
-version = "0.0.1"
+version = "0.1.0"
 
 [[package]]
 name = "enso"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "cubecore",
 ]
 
 [[package]]
 name = "exa"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "cubecore",
 ]
 
 [[package]]
 name = "verify"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "cubecore",
  "enso",

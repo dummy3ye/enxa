@@ -19,7 +19,7 @@ use std::time::Instant;
 
 fn usage() -> ! {
     eprintln!(
-        "usage: benchkit --solver <exa|enso> [--n N] [--seed S] [--depth D] [--facelets] [--batch]"
+        "usage: benchkit --solver <exa|enso> [--n N] [--seed S] [--depth D] [--facelets] [--batch] [--version]"
     );
     std::process::exit(2)
 }
@@ -30,6 +30,10 @@ fn pct(sorted: &[u128], p: f64) -> u128 {
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.iter().any(|a| a == "--version") {
+        println!("benchkit {}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
     let (mut name, mut n, mut seed, mut depth) = ("exa".to_string(), 100usize, 1u64, 0usize);
     let (mut facelets, mut batch) = (false, false);
     let mut i = 0;

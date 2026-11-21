@@ -13,7 +13,8 @@ fn usage() -> ! {
          usage:\n  \
          enso --scramble \"R U R' U'\"\n  \
          enso --facelets <54 chars, order U R F D L B>\n  \
-         enso --depth N [--seed S]\n\n\
+         enso --depth N [--seed S]\n  \
+         enso --version\n\n\
          note: every emitted solution is verified against the input cube."
     );
     std::process::exit(2)
@@ -25,6 +26,10 @@ fn arg(args: &[String], i: usize) -> &str {
 
 pub fn run() {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.iter().any(|a| a == "--version") {
+        println!("enso {}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
     if args.is_empty() {
         usage();
     }
