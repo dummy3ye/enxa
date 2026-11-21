@@ -20,10 +20,15 @@ while x not goal:  m = best[x];  emit m;  x = move_table[x][m]
 Each step is a couple of dependent loads and no branching on cube data. A whole solve is a few dozen steps. The chain is fixed; stages must keep the earlier stages' invariants (the standard group-chain argument, as in Thistlethwaite's algorithm).
 
 `DescentStage` in `enso/src/chain.rs` is the generic building block (built and unit-tested).
-Variant A lives in `enso/src/solver.rs`, `subgroup.rs`, `tables.rs` and `enso/src/stages/`:
-four descent stages with subgroup assertions after each one, and an allocation-free
-`Enso::solve_into` that writes into a fixed buffer. CLI work is isolated in `enso/src/cli.rs`;
-`main.rs` only calls it. Measured results are in `docs/EXPERIMENTS.md` (EXP-001).
+Variant A lives in `enso/src/solver.rs`, `subgroup.rs`, `tables.rs`, `tablefile.rs` and
+`enso/src/stages/`: four descent stages with subgroup assertions after each one, and an
+allocation-free `Enso::solve_into` that writes into a fixed buffer. `tablefile.rs` stores the
+packed tables in a validated cache file (magic, format version, expected sizes, payload
+checksum); a missing or mismatched file is reported and rebuilt in-process. The path is
+`$ENSO_TABLES`, otherwise `$XDG_CACHE_HOME/enxa/` or `$HOME/.cache/enxa/`, otherwise the system
+temp directory. `enso --build-tables` forces a rewrite. CLI work is isolated in
+`enso/src/cli.rs`; `main.rs` only calls it. Measured results are in `docs/EXPERIMENTS.md`
+(EXP-001, EXP-008).
 
 ### Variant A stage chain (derived and verified, not assumed)
 
@@ -40,7 +45,7 @@ The third stage cannot use L/R quarter turns: they move UD-slice edges out of th
 
 | Variant | Stages | Expected length | Table size | Notes |
 |---------|--------|-----------------|------------|-------|
-| A: Thistlethwaite chain | 4 (G0>G1>G2>G3>solved) | ~31 measured (max 41) | ~127 MB measured | simplest, most steps; implemented in M3 |
+| A: Thistlethwaite chain | 4 (G0>G1>G2>G3>solved) | ~31 measured (max 41) | 7,258,868 packed bytes | simplest, most steps; implemented in M3, packed in EXP-003 |
 | B: two-phase, first solution only | 2 | ~25-30 | ~100s of MB | phase 1 via descent, phase 2 via descent, no length optimization |
 | C: fat tables | 2-3 | 25-30 | GBs | fewest steps, DRAM-latency bound |
 
@@ -48,7 +53,7 @@ The third stage cannot use L/R quarter turns: they move UD-slice edges out of th
 
 ## Things most likely to actually matter
 
-1. **Input handling.** If input is a 54-char facelet string, parsing it into coordinates may cost more than the solve. Report both numbers. A SIMD coordinate extractor is a real, separate win.
+1. **Input handling.** If input is a 54-char facelet string, parsing it into coordinates may cost more than the solve. Report both numbers. enso now parses once into `FaceletParts` and descends on coordinates without building a `CubieCube` (EXP-005/006/007); a SIMD coordinate extractor is a separate potential win.
 2. **Memory latency.** A dependent-load chain is latency-bound. Pack `(move, next_coord)` into one entry so each step is one load. Use huge pages. Prefetch the next stage's table entries while finishing the current one.
 3. **Macro entries.** Instead of one move per lookup, let a stage entry hold a whole short move sequence (2-4 moves) when it fits. Fewer dependent loads, bigger tables. Measure.
 4. **Output.** Writing moves into a fixed `[u8; N]` buffer, no `Vec`.
@@ -57,7 +62,7 @@ The third stage cannot use L/R quarter turns: they move UD-slice edges out of th
 ## Honest expectations
 
 - Single-solve latency in the low microseconds is plausible; sub-microsecond is a *hypothesis* to be earned with measurements, not a promise.
-- Startup cost (building tables) was expected to be seconds; Variant A measured 465-547 ms. Loading prebuilt tables from disk via mmap is the fix and is part of M5.
+- Startup cost (building tables) was expected to be seconds; Variant A measured 465-547 ms. A validated prebuilt file now reduces warm startup to ~13 ms (EXP-008); a cold build+write is ~400-470 ms and is reported separately. mmap is still an unimplemented M5 idea.
 - Assembly is a last resort: only for a function the profiler names, only with a scalar fallback and tests against it.
 
 ## Correctness gate

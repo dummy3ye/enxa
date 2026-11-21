@@ -4,7 +4,7 @@
 //! Must NOT: implement the solver, stage coordinates, or cube conventions.
 
 use cubecore::{format_alg, from_facelets, parse_alg, random_alg, CubieCube, Rng, Solver};
-use enso::Enso;
+use enso::{build_tables, Enso};
 use std::time::Instant;
 
 fn usage() -> ! {
@@ -14,6 +14,7 @@ fn usage() -> ! {
          enso --scramble \"R U R' U'\"\n  \
          enso --facelets <54 chars, order U R F D L B>\n  \
          enso --depth N [--seed S]\n  \
+         enso --build-tables\n  \
          enso --version\n\n\
          note: every emitted solution is verified against the input cube."
     );
@@ -28,6 +29,15 @@ pub fn run() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.iter().any(|a| a == "--version") {
         println!("enso {}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
+    if args.iter().any(|a| a == "--build-tables") {
+        let (elapsed, path) = build_tables();
+        println!("tables rebuilt in {elapsed:.2?}");
+        match path {
+            Some(p) => println!("table file: {}", p.display()),
+            None => println!("table file: not writable; used in-memory tables"),
+        }
         return;
     }
     if args.is_empty() {
@@ -74,10 +84,18 @@ pub fn run() {
     }
     let cube = cube.unwrap_or_else(|| usage());
 
-    let t0 = Instant::now();
     let mut solver = Enso::new();
-    println!("tables built in {:.2?}", solver.table_build_time());
-    let _ = t0;
+    let source = if solver.tables_loaded_from_file() {
+        "loaded"
+    } else {
+        "built"
+    };
+    println!("tables {source} in {:.2?}", solver.table_build_time());
+    if let Some(path) = solver.table_path() {
+        println!("table file: {}", path.display());
+    } else {
+        println!("table file: in-memory only (cache path not writable)");
+    }
 
     let t1 = Instant::now();
     match solver.solve(&cube) {

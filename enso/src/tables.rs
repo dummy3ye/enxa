@@ -1,9 +1,11 @@
 //! Table construction for all four Variant A stages.
 //!
-//! Owns: the `Tables` container, startup BFS/table generation, and exact G3 membership.
-//! Must NOT: run a solve, emit moves, or perform I/O. The hot path only reads these tables.
+//! Owns: the `Tables` container, startup BFS/table generation, packed descent stages and
+//! exact G3 membership.
+//! Must NOT: run a solve, emit moves, or perform I/O. The hot path only reads these packed
+//! stages; the wide move tables are dropped after construction.
 
-use crate::chain::DescentStage;
+use crate::chain::PackedStage;
 use crate::stages::{orient, r#final, slicecorner, tetrad};
 use crate::subgroup::{
     edge_rank, eor_pattern, in_g2, nth_perm8, perm_rank8, tet_pattern, EDGE_RANK, HALF,
@@ -12,22 +14,16 @@ use cubecore::{
     cubie_from_cperm, perm_parity, CubieCube, Move, MoveTables, MOVES, N_CPERM, N_SLICE,
 };
 use std::collections::HashSet;
-use std::time::{Duration, Instant};
 
 pub(crate) struct Tables {
-    pub(crate) st1: DescentStage,
-    pub(crate) t1: Vec<u16>,
-    pub(crate) st2: DescentStage,
-    pub(crate) t2: Vec<u32>,
-    pub(crate) st3: DescentStage,
-    pub(crate) t3: Vec<u16>,
-    pub(crate) st4: DescentStage,
-    pub(crate) t4: Vec<u32>,
+    pub(crate) st1: PackedStage,
+    pub(crate) st2: PackedStage,
+    pub(crate) st3: PackedStage,
+    pub(crate) st4: PackedStage,
     pub(crate) corner_class: Vec<u8>,
     pub(crate) cp_idx: Vec<u16>,
     pub(crate) ep_idx: Vec<u16>,
     pub(crate) goal3: usize,
-    pub(crate) build_time: Duration,
 }
 
 impl Tables {
@@ -37,7 +33,6 @@ impl Tables {
     }
 
     pub(crate) fn build() -> Self {
-        let t0 = Instant::now();
         let all: Vec<Move> = orient::MOVES.iter().map(|&m| Move(m)).collect();
         let g1: Vec<Move> = slicecorner::MOVES.iter().map(|&m| Move(m)).collect();
         let g2: Vec<Move> = tetrad::MOVES.iter().map(|&m| Move(m)).collect();
@@ -45,11 +40,11 @@ impl Tables {
 
         // Stage 1: flip coordinate.
         let mt = MoveTables::new();
-        let st1 = DescentStage::build(orient::N, &all, &mt.flip, &[orient::GOAL]);
+        let st1 = PackedStage::build(orient::N, &all, &mt.flip, &[orient::GOAL]);
 
         // Stage 2: (twist, slice) product coordinate under G1 moves.
         let t2 = slicecorner::combine(&mt.twist, &mt.slice, N_SLICE);
-        let st2 = DescentStage::build(slicecorner::N, &g1, &t2, &[slicecorner::GOAL]);
+        let st2 = PackedStage::build(slicecorner::N, &g1, &t2, &[slicecorner::GOAL]);
 
         // Group building blocks shared by stages 3 and 4.
         let hcp = build_hcp();
@@ -74,7 +69,7 @@ impl Tables {
                 t3[x * 18 + m as usize] = tetrad::encode_g2(&n, &corner_class) as u16;
             }
         }
-        let st3 = DescentStage::build(tetrad::N, &g2, &t3, &[goal3]);
+        let st3 = PackedStage::build(tetrad::N, &g2, &t3, &[goal3]);
 
         // Stage 4: full BFS of the 663,552-state half-turn subgroup.
         let mut t4 = vec![0u32; r#final::N * 18];
@@ -93,28 +88,25 @@ impl Tables {
                 t4[x * 18 + m as usize] = (ci as usize * r#final::NEP + ei as usize) as u32;
             }
         }
-        let st4 = DescentStage::build(r#final::N, &half, &t4, &[r#final::GOAL]);
+        let st4 = PackedStage::build(r#final::N, &half, &t4, &[r#final::GOAL]);
 
+        // The 18-wide move tables and best[] arrays are construction-only now: packed stages
+        // own everything the descent needs, so the old ~127 MB of tables are dropped here.
         Tables {
             st1,
-            t1: mt.flip,
             st2,
-            t2,
             st3,
-            t3,
             st4,
-            t4,
             corner_class,
             cp_idx,
             ep_idx,
             goal3,
-            build_time: t0.elapsed(),
         }
     }
 }
 
 /// Corner permutations of the half-turn group, indexed 0..95 (identity = 0).
-fn build_hcp() -> Vec<[u8; 8]> {
+pub(crate) fn build_hcp() -> Vec<[u8; 8]> {
     let mut seen: HashSet<[u8; 8]> = HashSet::new();
     let mut list: Vec<[u8; 8]> = Vec::new();
     let id = [0u8, 1, 2, 3, 4, 5, 6, 7];
@@ -170,7 +162,7 @@ fn build_hep() -> Vec<[u8; 12]> {
 
 /// Left-coset classes of corner permutations under G3, re-indexed per tetrad pattern,
 /// plus one representative cube per (tetrad, class) and (edge orbit, parity) pair.
-fn build_g2_reps(hcp: &[[u8; 8]]) -> (Vec<u8>, Vec<[u8; 8]>, Vec<[u8; 12]>) {
+pub(crate) fn build_g2_reps(hcp: &[[u8; 8]]) -> (Vec<u8>, Vec<[u8; 8]>, Vec<[u8; 12]>) {
     let mut global = vec![u16::MAX; N_CPERM];
     let mut tet_of = vec![0usize; N_CPERM];
     let mut gid = 0u16;
@@ -263,6 +255,20 @@ mod tests {
     use super::*;
     use crate::subgroup::walk;
     use cubecore::Rng;
+
+    #[test]
+    fn hot_table_bytes_match_report() {
+        let t = tables();
+        use std::mem::size_of;
+        let bytes = t.st1.bytes()
+            + t.st2.bytes()
+            + t.st3.bytes()
+            + t.st4.bytes()
+            + t.corner_class.len() * size_of::<u8>()
+            + t.cp_idx.len() * size_of::<u16>()
+            + t.ep_idx.len() * size_of::<u16>();
+        assert_eq!(bytes, 7_258_868);
+    }
 
     #[test]
     fn half_turns_preserve_g3_and_membership_is_exact() {

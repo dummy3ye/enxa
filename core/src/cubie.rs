@@ -122,34 +122,7 @@ impl CubieCube {
 
     /// Is this a physically reachable cube?
     pub fn verify(&self) -> Result<(), &'static str> {
-        let mut seen = [false; 8];
-        for &c in &self.cp {
-            if c >= 8 || seen[c as usize] {
-                return Err("invalid corner permutation");
-            }
-            seen[c as usize] = true;
-        }
-        let mut seen = [false; 12];
-        for &e in &self.ep {
-            if e >= 12 || seen[e as usize] {
-                return Err("invalid edge permutation");
-            }
-            seen[e as usize] = true;
-        }
-        if self.co.iter().any(|&x| x >= 3)
-            || self.co.iter().map(|&x| x as u32).sum::<u32>() % 3 != 0
-        {
-            return Err("corner twist is not solvable");
-        }
-        if self.eo.iter().any(|&x| x >= 2)
-            || self.eo.iter().map(|&x| x as u32).sum::<u32>() % 2 != 0
-        {
-            return Err("edge flip is not solvable");
-        }
-        if perm_parity(&self.cp) != perm_parity(&self.ep) {
-            return Err("permutation parity mismatch");
-        }
-        Ok(())
+        verify_arrays(&self.cp, &self.co, &self.ep, &self.eo)
     }
 
     /// A uniformly random solvable cube.
@@ -174,6 +147,38 @@ impl CubieCube {
         c.eo[11] = s % 2;
         c
     }
+}
+
+pub(crate) fn verify_arrays(
+    cp: &[u8; 8],
+    co: &[u8; 8],
+    ep: &[u8; 12],
+    eo: &[u8; 12],
+) -> Result<(), &'static str> {
+    let mut seen = [false; 8];
+    for &c in cp {
+        if c >= 8 || seen[c as usize] {
+            return Err("invalid corner permutation");
+        }
+        seen[c as usize] = true;
+    }
+    let mut seen = [false; 12];
+    for &e in ep {
+        if e >= 12 || seen[e as usize] {
+            return Err("invalid edge permutation");
+        }
+        seen[e as usize] = true;
+    }
+    if co.iter().any(|&x| x >= 3) || co.iter().map(|&x| x as u32).sum::<u32>() % 3 != 0 {
+        return Err("corner twist is not solvable");
+    }
+    if eo.iter().any(|&x| x >= 2) || eo.iter().map(|&x| x as u32).sum::<u32>() % 2 != 0 {
+        return Err("edge flip is not solvable");
+    }
+    if perm_parity(cp) != perm_parity(ep) {
+        return Err("permutation parity mismatch");
+    }
+    Ok(())
 }
 
 fn shuffle<const N: usize>(a: &mut [u8; N], rng: &mut Rng) {

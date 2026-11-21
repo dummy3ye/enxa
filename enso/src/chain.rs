@@ -5,7 +5,8 @@
 //! pure table lookups: `x -> best[x] -> table[x*18 + best[x]] -> ...` until a goal is reached.
 //! No search, no branching on the hot path. Chain several stages to solve a whole cube.
 //!
-//! Owns: the reusable stage BFS (`DescentStage`) and table element abstraction.
+//! Owns: the reusable stage BFS (`DescentStage`), its packed hot-path form (`PackedStage`)
+//! and the table element abstraction.
 //! Must NOT: define stages, build cube tables, or know about the CLI.
 
 use cubecore::Move;
@@ -27,6 +28,62 @@ impl TableIndex for u32 {
     #[inline]
     fn index(self) -> usize {
         self as usize
+    }
+}
+
+const MOVE_SHIFT: u32 = 24;
+const NEXT_MASK: u32 = 0x00ff_ffff;
+const NO_MOVE: u8 = u8::MAX;
+
+/// One-load descent table: high byte is the move, low 24 bits are the next coordinate.
+/// Built from the same BFS as `DescentStage`, so it makes no independent correctness claim.
+pub struct PackedStage {
+    entry: Vec<u32>,
+}
+
+impl PackedStage {
+    /// Build packed entries from a standard `n * 18` move table and BFS goals.
+    pub fn build<T: TableIndex>(n: usize, allowed: &[Move], table: &[T], goals: &[usize]) -> Self {
+        assert!(n <= 1 << 24, "coordinate does not fit in 24 bits");
+        let stage = DescentStage::build(n, allowed, table, goals);
+        let mut entry = vec![0u32; n];
+        for x in 0..n {
+            match stage.step(x, table) {
+                Some((m, next)) => {
+                    debug_assert!(next <= NEXT_MASK as usize);
+                    entry[x] = ((m.0 as u32) << MOVE_SHIFT) | (next as u32 & NEXT_MASK);
+                }
+                None => entry[x] = (NO_MOVE as u32) << MOVE_SHIFT,
+            }
+        }
+        PackedStage { entry }
+    }
+
+    /// Heap bytes held by this stage, used for startup/table-size reports.
+    #[cfg(test)]
+    pub(crate) fn bytes(&self) -> usize {
+        self.entry.len() * std::mem::size_of::<u32>()
+    }
+
+    /// Serialized view used only by the validated table-file loader.
+    pub(crate) fn entry(&self) -> &[u32] {
+        &self.entry
+    }
+
+    /// Rebuild a stage from validated file bytes.
+    pub(crate) fn from_entry(entry: Vec<u32>) -> Self {
+        PackedStage { entry }
+    }
+
+    /// One dependent load yields both the move and the next coordinate.
+    #[inline]
+    pub fn step(&self, x: usize) -> Option<(Move, usize)> {
+        let e = *self.entry.get(x)?;
+        let m = (e >> MOVE_SHIFT) as u8;
+        if m == NO_MOVE {
+            return None;
+        }
+        Some((Move(m), (e & NEXT_MASK) as usize))
     }
 }
 
@@ -100,6 +157,19 @@ impl DescentStage {
 mod tests {
     use super::*;
     use cubecore::{MoveTables, N_TWIST};
+
+    #[test]
+    fn packed_stage_matches_descent_stage() {
+        let mt = MoveTables::new();
+        let all: Vec<Move> = Move::all().collect();
+        let plain = DescentStage::build(N_TWIST, &all, &mt.twist, &[0]);
+        let packed = PackedStage::build(N_TWIST, &all, &mt.twist, &[0]);
+        for x in 0..N_TWIST {
+            let a = plain.step(x, &mt.twist).map(|(m, n)| (m.0, n));
+            let b = packed.step(x).map(|(m, n)| (m.0, n));
+            assert_eq!(a, b, "packed step differs at {x}");
+        }
+    }
 
     #[test]
     fn twist_descent_reaches_goal_in_dist_steps() {

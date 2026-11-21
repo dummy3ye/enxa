@@ -4,7 +4,8 @@
 //! Owns: the sticker mapping between 54-character strings and cubies.
 //! Must NOT: solve, search, or depend on move tables.
 
-use crate::cubie::CubieCube;
+use crate::coord::{cperm_from_cp, flip_from_eo, slice_from_ep, twist_from_co};
+use crate::cubie::{verify_arrays, CubieCube};
 
 const CORNER_FACELET: [[usize; 3]; 8] = [
     [8, 9, 20],
@@ -57,6 +58,38 @@ const EDGE_COLOR: [[u8; 2]; 12] = [
 ];
 const LETTERS: [char; 6] = ['U', 'R', 'F', 'D', 'L', 'B'];
 
+/// Cubie arrays decoded from a facelet string, without allocating an intermediate `Vec<char>`.
+/// This is the hand-off format for solvers that want coordinates rather than a full cube.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct FaceletParts {
+    pub cp: [u8; 8],
+    pub co: [u8; 8],
+    pub ep: [u8; 12],
+    pub eo: [u8; 12],
+}
+
+impl FaceletParts {
+    pub fn verify(&self) -> Result<(), &'static str> {
+        verify_arrays(&self.cp, &self.co, &self.ep, &self.eo)
+    }
+
+    pub fn flip(&self) -> usize {
+        flip_from_eo(&self.eo)
+    }
+
+    pub fn twist(&self) -> usize {
+        twist_from_co(&self.co)
+    }
+
+    pub fn slice_pos(&self) -> usize {
+        slice_from_ep(&self.ep)
+    }
+
+    pub fn cperm(&self) -> usize {
+        cperm_from_cp(&self.cp)
+    }
+}
+
 pub fn to_facelets(c: &CubieCube) -> String {
     let mut f = [0u8; 54];
     for (i, slot) in f.iter_mut().enumerate() {
@@ -79,24 +112,34 @@ pub fn to_facelets(c: &CubieCube) -> String {
     f.iter().map(|&x| LETTERS[x as usize]).collect()
 }
 
-pub fn from_facelets(s: &str) -> Result<CubieCube, String> {
-    let chars: Vec<char> = s.trim().chars().collect();
-    if chars.len() != 54 {
-        return Err(format!("expected 54 facelets, got {}", chars.len()));
+pub fn from_facelets_parts(s: &str) -> Result<FaceletParts, String> {
+    let bytes = s.trim().as_bytes();
+    if bytes.len() != 54 {
+        return Err(format!("expected 54 facelets, got {}", bytes.len()));
     }
     let mut f = [0u8; 54];
-    for (i, ch) in chars.iter().enumerate() {
-        f[i] = LETTERS
-            .iter()
-            .position(|l| l == ch)
-            .ok_or_else(|| format!("bad facelet character '{ch}'"))? as u8;
+    for (i, &b) in bytes.iter().enumerate() {
+        f[i] = match b {
+            b'U' => 0,
+            b'R' => 1,
+            b'F' => 2,
+            b'D' => 3,
+            b'L' => 4,
+            b'B' => 5,
+            _ => return Err(format!("bad facelet character '{}'", b as char)),
+        };
     }
     for face in 0..6 {
         if f[face * 9 + 4] != face as u8 {
             return Err("center facelets are not in U R F D L B order".into());
         }
     }
-    let mut c = CubieCube::SOLVED;
+    let mut parts = FaceletParts {
+        cp: [0; 8],
+        co: [0; 8],
+        ep: [0; 12],
+        eo: [0; 12],
+    };
     for i in 0..8 {
         let mut ori = 0usize;
         while ori < 3 {
@@ -114,8 +157,8 @@ pub fn from_facelets(s: &str) -> Result<CubieCube, String> {
         let mut found = false;
         for j in 0..8 {
             if CORNER_COLOR[j][1] == c1 && CORNER_COLOR[j][2] == c2 {
-                c.cp[i] = j as u8;
-                c.co[i] = ori as u8;
+                parts.cp[i] = j as u8;
+                parts.co[i] = ori as u8;
                 found = true;
                 break;
             }
@@ -130,14 +173,14 @@ pub fn from_facelets(s: &str) -> Result<CubieCube, String> {
         let mut found = false;
         for j in 0..12 {
             if a == EDGE_COLOR[j][0] && b == EDGE_COLOR[j][1] {
-                c.ep[i] = j as u8;
-                c.eo[i] = 0;
+                parts.ep[i] = j as u8;
+                parts.eo[i] = 0;
                 found = true;
                 break;
             }
             if a == EDGE_COLOR[j][1] && b == EDGE_COLOR[j][0] {
-                c.ep[i] = j as u8;
-                c.eo[i] = 1;
+                parts.ep[i] = j as u8;
+                parts.eo[i] = 1;
                 found = true;
                 break;
             }
@@ -146,6 +189,16 @@ pub fn from_facelets(s: &str) -> Result<CubieCube, String> {
             return Err(format!("edge slot {i} has an impossible color pair"));
         }
     }
-    c.verify().map_err(|e| e.to_string())?;
-    Ok(c)
+    parts.verify().map_err(|e| e.to_string())?;
+    Ok(parts)
+}
+
+pub fn from_facelets(s: &str) -> Result<CubieCube, String> {
+    let parts = from_facelets_parts(s)?;
+    Ok(CubieCube {
+        cp: parts.cp,
+        co: parts.co,
+        ep: parts.ep,
+        eo: parts.eo,
+    })
 }

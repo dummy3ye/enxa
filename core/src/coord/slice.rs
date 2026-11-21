@@ -9,18 +9,22 @@ use crate::cubie::CubieCube;
 pub const N_SLICE: usize = 495; // C(12,4)
 pub const SLICE_SOLVED: usize = 494; // edges FR FL BL BR sit in slots 8..12
 
+pub(crate) fn slice_from_ep(ep: &[u8; 12]) -> usize {
+    let mut rank = 0usize;
+    let mut k = 0usize;
+    for pos in 0..12 {
+        if ep[pos] >= 8 {
+            rank += cnk(pos, k + 1);
+            k += 1;
+        }
+    }
+    rank
+}
+
 impl CubieCube {
     /// Combinadic rank of the slots that hold UD-slice edges (edge ids 8..12).
     pub fn slice_pos(&self) -> usize {
-        let mut rank = 0usize;
-        let mut k = 0usize;
-        for pos in 0..12 {
-            if self.ep[pos] >= 8 {
-                rank += cnk(pos, k + 1);
-                k += 1;
-            }
-        }
-        rank
+        slice_from_ep(&self.ep)
     }
 }
 

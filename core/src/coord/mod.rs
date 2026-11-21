@@ -14,6 +14,11 @@ pub use flip::{cubie_from_flip, N_FLIP};
 pub use slice::{cubie_from_slice, N_SLICE, SLICE_SOLVED};
 pub use twist::{cubie_from_twist, N_TWIST};
 
+pub(crate) use cperm::cperm_from_cp;
+pub(crate) use flip::flip_from_eo;
+pub(crate) use slice::slice_from_ep;
+pub(crate) use twist::twist_from_co;
+
 /// Binomial coefficient C(n, k); 0 when k > n.
 pub fn cnk(n: usize, k: usize) -> usize {
     if k > n {

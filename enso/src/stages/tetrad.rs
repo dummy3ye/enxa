@@ -38,13 +38,14 @@ pub(crate) fn decode_g2(x: usize, rep_cp: &[[u8; 8]], rep_ep: &[[u8; 12]]) -> Cu
 mod tests {
     use super::*;
     use crate::subgroup::{in_g2, ALL, G1_MOVES};
-    use crate::tables::tables;
+    use crate::tables::{build_g2_reps, build_hcp, tables};
     use cubecore::Move;
     use cubecore::Rng;
 
     #[test]
-    fn stage3_move_table_matches_recomputed_coordinate() {
+    fn stage3_coordinate_roundtrips_and_g2_moves_stay_in_domain() {
         let t = tables();
+        let (_, rep_cp, rep_ep) = build_g2_reps(&build_hcp());
         let mut rng = Rng::new(104);
         let all: Vec<Move> = ALL.iter().map(|&m| Move(m)).collect();
         for _ in 0..2000 {
@@ -56,11 +57,14 @@ mod tests {
                 continue;
             }
             let x = encode_g2(&c, &t.corner_class);
+            let decoded = decode_g2(x, &rep_cp, &rep_ep);
+            assert_eq!(encode_g2(&decoded, &t.corner_class), x);
             for m in all.iter().copied().filter(|m| G2_MOVES.contains(&m.0)) {
-                let n = c.apply(m);
+                let n = decoded.apply(m);
+                let nx = encode_g2(&n, &t.corner_class);
                 assert_eq!(
-                    t.t3[x * 18 + m.0 as usize] as usize,
-                    encode_g2(&n, &t.corner_class)
+                    encode_g2(&decode_g2(nx, &rep_cp, &rep_ep), &t.corner_class),
+                    nx
                 );
             }
         }

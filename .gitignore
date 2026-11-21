@@ -2,5 +2,6 @@
 /dist/
 *.tbl
 *.bin
+*.bin.tmp*
 *.log
 .DS_Store

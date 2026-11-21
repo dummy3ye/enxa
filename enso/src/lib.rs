@@ -12,6 +12,7 @@ mod chain;
 mod solver;
 mod stages;
 mod subgroup;
+mod tablefile;
 mod tables;
 
-pub use solver::{Enso, MAX_SOLUTION_LEN};
+pub use solver::{build_tables, Enso, MAX_SOLUTION_LEN};
