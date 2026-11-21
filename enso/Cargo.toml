@@ -1,0 +1,15 @@
+[package]
+name = "enso"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "enso: absolute-fastest Rubik's Cube solver (any valid solution, minimum latency)"
+
+[dependencies]
+cubecore = { path = "../core" }
+
+[features]
+default = []
+# Opt-in hand-written SIMD / asm kernels. Only add after profiling proves a hot spot.
+asm = []

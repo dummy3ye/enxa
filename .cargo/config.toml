@@ -1,0 +1,4 @@
+# Native codegen: AVX2/AVX-512/BMI2 are used when the CPU has them.
+# Binaries built this way are NOT portable to older CPUs. That is intentional.
+[build]
+rustflags = ["-C", "target-cpu=native"]

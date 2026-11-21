@@ -1,0 +1,12 @@
+[package]
+name = "verify"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Correctness tests: the gate every change must pass"
+
+[dependencies]
+cubecore = { path = "../core" }
+exa = { path = "../exa" }
+enso = { path = "../enso" }

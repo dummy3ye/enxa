@@ -1,0 +1,10 @@
+[package]
+name = "cubecore"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Shared cube model, moves, coordinates and tables for enso and exa"
+
+[dependencies]
+# Intentionally empty. Zero third-party dependencies in core.
