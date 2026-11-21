@@ -34,7 +34,8 @@ Status key: [x] done, [ ] todo. Update this file in the same change that finishe
 - [x] benchmark report: enso vs baseline, same machine, same seeds
 
 ## M5: enso tuning
-- [ ] packed entries, huge pages, prefetch
+- [x] packed entries (EXP-003); huge pages and prefetch still untested
+- [x] validated prebuilt table file with in-process fallback (EXP-008)
 - [ ] mmap-able table files
 - [x] facelet to coordinate fast path (EXP-005/006/007)
 - [ ] Variant B/C comparison, find the table-size knee

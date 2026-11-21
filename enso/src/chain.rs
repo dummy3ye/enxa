@@ -65,6 +65,16 @@ impl PackedStage {
         self.entry.len() * std::mem::size_of::<u32>()
     }
 
+    /// Serialized view used only by the validated table-file loader.
+    pub(crate) fn entry(&self) -> &[u32] {
+        &self.entry
+    }
+
+    /// Rebuild a stage from validated file bytes.
+    pub(crate) fn from_entry(entry: Vec<u32>) -> Self {
+        PackedStage { entry }
+    }
+
     /// One dependent load yields both the move and the next coordinate.
     #[inline]
     pub fn step(&self, x: usize) -> Option<(Move, usize)> {

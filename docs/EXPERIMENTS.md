@@ -28,8 +28,43 @@ Notes:       <what you learned>
 | EXP-005 | direct facelet coordinate path with incremental tables | vs step 2: facelets p50 3021.5 -> 2443 ns (-19.1%), cubie unchanged | kept, then refined |
 | EXP-006 | rank at boundaries, drop incremental tables | facelets p50 +3.7%, p99 -16.0%; cache misses 44.2 -> 24.2/solve; tables -1.7 MB | iterate |
 | EXP-007 | cheap array updates, skip dead arrays | vs EXP-006 facelets p50 -7.8%; vs published v3 p50 -38.8%, p99 -52.0% | keep |
+| EXP-008 | validated prebuilt packed tables | startup 426 ms -> 13.2 ms warm; p50 unchanged (+0.1% cubie, +0.5% facelets) | keep |
 
 ## Log
+
+### EXP-008: validated prebuilt packed tables
+Date:        2026-11-22
+Tool:        enso
+Status:      implemented, benchmarked, kept
+Hypothesis:  The packed tables are deterministic and take ~7.26 MB, so loading a validated file
+             should cut enso startup (currently ~475 ms cold, ~482 ms warm) to a few
+             milliseconds without changing solve latency. A header with magic, format version,
+             expected sizes and a checksum over the payload can reject wrong or corrupt files
+             instead of silently using them; an in-process build fallback keeps the file
+             optional.
+Kill if:     A valid file fails verification, a mismatched/corrupt file is accepted, the
+             serialized bytes do not round-trip to the in-process tables, solve latency changes,
+             or the 1M gate reports any invalid/failed solution.
+Setup:       Branch `perf`, A = detached worktree at 1f8e1c5, B = current tree. Both built with
+             `-C target-cpu=x86-64-v3 --remap-path-prefix`, seed 1, n=100000, three A/B/B/A pairs
+             each for cubie and `--facelets`. Cache path overridden with `ENSO_TABLES` to a fresh
+             file under `/tmp/opencode/enxa-perf/tableexp/`. CPU: Intel Core i3-1005G1 @ 1.20 GHz,
+             Linux 7.2.14-arch1-1, rustc 1.97.1. Logs: `/tmp/opencode/enxa-perf/ab_exp008_*.log`.
+Result:      A vs B startup median 426.38 -> 13.18 ms (cubie runs) and 427.89 -> 13.25 ms
+             (facelet runs); first cold build+write on a fresh path 399.11 ms. Forced rebuild via
+             `enso --build-tables` completed in 464.20 ms. A truncated file and a file with one
+             flipped payload byte were both reported on stderr and rebuilt; unit tests confirm
+             encode/decode byte identity and reject wrong magic, version, size and checksum.
+             Solve-path p50: cubie 1535 -> 1537 ns (+0.1%), facelets 2216 -> 2227 ns (+0.5%).
+             p99: cubie 3680.5 -> 3464 ns (-5.9%), facelets 4825.5 -> 5008 ns (+3.8%, drift).
+             All 24 benchmark runs solved 100,000 cubes with 0 failed / 0 INVALID.
+             `./scripts/check.sh` passed; both 1M gates 0 invalid / 0 failed, avg 31.343, max 41.
+Decision:    keep
+Notes:       Startup is reported separately; no solve-path table layout was changed. The p50
+             results are within run-to-run noise; the p99 changes are not used as a performance
+             claim for the solve path. The stage-3 construction-only `t3` field was removed and
+             its test replaced by an encode/decode/closure check over the same G2 coordinate
+             domain, so loaded tables can be decoded without unavailable construction inputs.
 
 ### EXP-007: cheap array updates for the facelet coordinate path
 Date:        2026-11-21

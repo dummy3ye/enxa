@@ -14,21 +14,16 @@ use cubecore::{
     cubie_from_cperm, perm_parity, CubieCube, Move, MoveTables, MOVES, N_CPERM, N_SLICE,
 };
 use std::collections::HashSet;
-use std::time::{Duration, Instant};
 
 pub(crate) struct Tables {
     pub(crate) st1: PackedStage,
     pub(crate) st2: PackedStage,
     pub(crate) st3: PackedStage,
     pub(crate) st4: PackedStage,
-    /// Kept only so the stage-3 move-table test can check every G2 transition.
-    #[cfg(test)]
-    pub(crate) t3: Vec<u16>,
     pub(crate) corner_class: Vec<u8>,
     pub(crate) cp_idx: Vec<u16>,
     pub(crate) ep_idx: Vec<u16>,
     pub(crate) goal3: usize,
-    pub(crate) build_time: Duration,
 }
 
 impl Tables {
@@ -38,7 +33,6 @@ impl Tables {
     }
 
     pub(crate) fn build() -> Self {
-        let t0 = Instant::now();
         let all: Vec<Move> = orient::MOVES.iter().map(|&m| Move(m)).collect();
         let g1: Vec<Move> = slicecorner::MOVES.iter().map(|&m| Move(m)).collect();
         let g2: Vec<Move> = tetrad::MOVES.iter().map(|&m| Move(m)).collect();
@@ -76,8 +70,6 @@ impl Tables {
             }
         }
         let st3 = PackedStage::build(tetrad::N, &g2, &t3, &[goal3]);
-        #[cfg(test)]
-        let t3_test = t3;
 
         // Stage 4: full BFS of the 663,552-state half-turn subgroup.
         let mut t4 = vec![0u32; r#final::N * 18];
@@ -105,19 +97,16 @@ impl Tables {
             st2,
             st3,
             st4,
-            #[cfg(test)]
-            t3: t3_test,
             corner_class,
             cp_idx,
             ep_idx,
             goal3,
-            build_time: t0.elapsed(),
         }
     }
 }
 
 /// Corner permutations of the half-turn group, indexed 0..95 (identity = 0).
-fn build_hcp() -> Vec<[u8; 8]> {
+pub(crate) fn build_hcp() -> Vec<[u8; 8]> {
     let mut seen: HashSet<[u8; 8]> = HashSet::new();
     let mut list: Vec<[u8; 8]> = Vec::new();
     let id = [0u8, 1, 2, 3, 4, 5, 6, 7];
@@ -173,7 +162,7 @@ fn build_hep() -> Vec<[u8; 12]> {
 
 /// Left-coset classes of corner permutations under G3, re-indexed per tetrad pattern,
 /// plus one representative cube per (tetrad, class) and (edge orbit, parity) pair.
-fn build_g2_reps(hcp: &[[u8; 8]]) -> (Vec<u8>, Vec<[u8; 8]>, Vec<[u8; 12]>) {
+pub(crate) fn build_g2_reps(hcp: &[[u8; 8]]) -> (Vec<u8>, Vec<[u8; 8]>, Vec<[u8; 12]>) {
     let mut global = vec![u16::MAX; N_CPERM];
     let mut tet_of = vec![0usize; N_CPERM];
     let mut gid = 0u16;

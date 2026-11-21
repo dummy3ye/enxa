@@ -6,12 +6,23 @@
 use crate::chain::PackedStage;
 use crate::stages::{orient, r#final, slicecorner, tetrad};
 use crate::subgroup::{edge_rank, eor_pattern, in_g1, in_g2, tet_pattern};
+use crate::tablefile::{self, Source};
 use crate::tables::Tables;
 use cubecore::{from_facelets_parts, CubieCube, Move, Solver, MOVES, N_SLICE};
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 /// Upper bound on emitted moves. Every stage's BFS depth is far below this.
 pub const MAX_SOLUTION_LEN: usize = 128;
+
+/// Rebuild and rewrite the table cache. Returns startup time and the written path.
+pub fn build_tables() -> (Duration, Option<PathBuf>) {
+    let startup = tablefile::force_build();
+    (
+        startup.elapsed,
+        startup.source.path().map(Path::to_path_buf),
+    )
+}
 
 fn descend(
     st: &PackedStage,
@@ -62,18 +73,35 @@ fn apply_parts(parts: &mut cubecore::FaceletParts, m: u8, track_co: bool) {
 
 pub struct Enso {
     tables: Tables,
+    startup_elapsed: Duration,
+    startup_source: Source,
 }
 
 impl Enso {
-    /// Builds all stage tables. This is startup cost, reported separately from solve latency.
+    /// Loads validated prebuilt tables, rebuilding the cache in-process when needed.
+    /// Startup time is reported separately from solve latency.
     pub fn new() -> Self {
+        let startup = tablefile::load();
         Enso {
-            tables: Tables::build(),
+            tables: startup.tables,
+            startup_elapsed: startup.elapsed,
+            startup_source: startup.source,
         }
     }
 
+    /// Time spent loading or building tables at construction.
     pub fn table_build_time(&self) -> Duration {
-        self.tables.build_time
+        self.startup_elapsed
+    }
+
+    /// `true` when tables came from a validated file rather than an in-process build.
+    pub fn tables_loaded_from_file(&self) -> bool {
+        self.startup_source.is_loaded()
+    }
+
+    /// Table file used or written, if the cache path was writable.
+    pub fn table_path(&self) -> Option<&Path> {
+        self.startup_source.path()
     }
 
     /// Allocation-free descent into a caller-provided fixed-size buffer.
