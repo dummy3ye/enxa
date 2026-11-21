@@ -7,13 +7,17 @@ use crate::cubie::CubieCube;
 
 pub const N_FLIP: usize = 2048; // 2^11
 
+pub(crate) fn flip_from_eo(eo: &[u8; 12]) -> usize {
+    let mut f = 0usize;
+    for i in 0..11 {
+        f = f * 2 + eo[i] as usize;
+    }
+    f
+}
+
 impl CubieCube {
     pub fn flip(&self) -> usize {
-        let mut f = 0usize;
-        for i in 0..11 {
-            f = f * 2 + self.eo[i] as usize;
-        }
-        f
+        flip_from_eo(&self.eo)
     }
 }
 

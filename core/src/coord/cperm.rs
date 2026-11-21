@@ -7,23 +7,26 @@ use crate::cubie::CubieCube;
 
 pub const N_CPERM: usize = 40320; // 8!
 
+pub(crate) fn cperm_from_cp(p: &[u8; 8]) -> usize {
+    let mut r = 0usize;
+    let mut fact = 1usize;
+    for i in 1..8 {
+        let mut s = 0usize;
+        for j in 0..i {
+            if p[j] > p[i] {
+                s += 1;
+            }
+        }
+        r += s * fact;
+        fact *= i + 1;
+    }
+    r
+}
+
 impl CubieCube {
     /// Lehmer-style rank of the corner permutation.
     pub fn cperm(&self) -> usize {
-        let p = &self.cp;
-        let mut r = 0usize;
-        let mut fact = 1usize;
-        for i in 1..8 {
-            let mut s = 0usize;
-            for j in 0..i {
-                if p[j] > p[i] {
-                    s += 1;
-                }
-            }
-            r += s * fact;
-            fact *= i + 1;
-        }
-        r
+        cperm_from_cp(&self.cp)
     }
 }
 

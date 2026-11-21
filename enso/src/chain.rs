@@ -59,6 +59,12 @@ impl PackedStage {
         PackedStage { entry }
     }
 
+    /// Heap bytes held by this stage, used for startup/table-size reports.
+    #[cfg(test)]
+    pub(crate) fn bytes(&self) -> usize {
+        self.entry.len() * std::mem::size_of::<u32>()
+    }
+
     /// One dependent load yields both the move and the next coordinate.
     #[inline]
     pub fn step(&self, x: usize) -> Option<(Move, usize)> {

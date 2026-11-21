@@ -78,9 +78,12 @@ private and re-exports each coordinate's constants and decoders from `coord/mod.
 ## Data flow
 
 A scramble enters as cubies or a 54-character facelet string. `benchkit` and the CLIs
-construct a `CubieCube`, call the selected `Solver`, then apply the returned moves to the
-original cube and require `is_solved()`. Startup table construction is timed separately
-from the solve.
+apply the returned moves to the original cube and require `is_solved()`. For cubie input
+they call the `Solver` trait directly. For facelet input, enso uses
+`Enso::solve_facelets_into`, which parses once into `FaceletParts`, updates the cubie arrays
+with each emitted move, and ranks the stage coordinates only at stage boundaries; exa uses
+the normal parse-then-solve path. Startup table construction is timed separately from the
+solve.
 
 enso's four stages are G0→G1 (all 18 moves), G1→G2 (`<U,D,L,R,F2,B2>`), G2→G3
 (`<U,D,L2,R2,F2,B2>`), and G3→solved (`<U2,D2,L2,R2,F2,B2>`). The G2→G3 set is not a

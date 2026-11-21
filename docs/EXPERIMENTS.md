@@ -16,12 +16,92 @@ Decision:    keep | revert | iterate
 Notes:       <what you learned>
 ```
 
+## Summary of attempts
+
+| Attempt | Change | Measured effect (interleaved A/B, seed 1, n=100000) | Decision |
+|---------|--------|----------------------------------------------------|----------|
+| EXP-001 | Variant A table descent | cubie p50 ~2190-2310 ns, facelets p50 3474-3707 ns; 1M gate 0 invalid | baseline |
+| EXP-002 | module structure only | no behavior change, all tests pass | keep |
+| EXP-003 step 0 | perf profile | dependent table loads dominate `Enso::solve`; `CubieCube::multiply` second | guide only |
+| EXP-003 step 2 | pack `(move,next)` into one u32 | vs published v3: cubie p50 -32.2%, p99 -44.3%; facelets p50 -21.3%, p99 -38.5%; hot tables 130.6 MB -> 7.26 MB | keep |
+| EXP-004 | kociemba timing reference | kociemba p50 30,264 ns vs enso 3,088 ns on the same 50 cubes; length 10.74 vs 26.28 | reference only |
+| EXP-005 | direct facelet coordinate path with incremental tables | vs step 2: facelets p50 3021.5 -> 2443 ns (-19.1%), cubie unchanged | kept, then refined |
+| EXP-006 | rank at boundaries, drop incremental tables | facelets p50 +3.7%, p99 -16.0%; cache misses 44.2 -> 24.2/solve; tables -1.7 MB | iterate |
+| EXP-007 | cheap array updates, skip dead arrays | vs EXP-006 facelets p50 -7.8%; vs published v3 p50 -38.8%, p99 -52.0% | keep |
+
 ## Log
+
+### EXP-007: cheap array updates for the facelet coordinate path
+Date:        2026-11-21
+Tool:        enso
+Status:      implemented, benchmarked, kept
+Hypothesis:  EXP-006 removed the large random-access move tables but reintroduced per-move
+             `% 3` / `% 2` divisions and updates to `eo` after stage 1 and `co` after stage 2,
+             even though those arrays are never read again. Replacing the divisions with a
+             conditional subtract / bitmask and updating each array only while it is still
+             needed should recover the ~3.7% facelet p50 regression while keeping the cache
+             and table-size win.
+Kill if:     Interleaved A/B against EXP-006 shows no reproducible facelet p50 improvement, or
+             cubie latency regresses, or cache misses rise back toward EXP-005 levels, or any
+             solution fails verification, or the 1M gate fails.
+Setup:       Branch `perf`, EXP-006 candidate. A = EXP-006 binary (sha256 bd15082c is the
+             EXP-005 A binary; A here is the EXP-006 B binary). Same v3 flags, seed 1,
+             n=100000, cubie and `--facelets`, six interleaved pairs. EXP-006 medians: cubie
+             p50 1582.5 / p99 3721 ns; facelets p50 2482 / p99 4868 ns; facelet cache misses
+             24.2/solve, hot tables 7,258,868 bytes.
+Result:      Six interleaved pairs (`ab_{cubie,facelets}_exp007.log`), A = EXP-006, B = this
+             variant: facelets p50 median 2495.5 -> 2300.5 ns (-7.8%), p99 4625.5 -> 4676.5 ns
+             (+1.1%, noise), avg 2724 -> 2537 ns (-6.9%). Cubie p50 1600 -> 1627.5 ns and
+             p99 3721.5 -> 3432 ns are run-to-run drift: the cubie solve code is unchanged.
+             Facelet cache misses stay at 23.7/solve (EXP-006 24.2, EXP-005 44.2), LLC 9.4,
+             L1 35.7, dTLB 1.1. Hot tables remain 7,258,868 bytes.
+             Final A/B against the published v3 tarball, six interleaved pairs
+             (`ab_cubie_final_step3.log`, `ab_facelets_final_step3.log`):
+             cubie p50 2291 -> 1559.5 ns (-31.9%), p99 6716 -> 3306.5 ns (-50.8%);
+             facelets p50 3646 -> 2232.5 ns (-38.8%), p99 9191 -> 4406.5 ns (-52.0%).
+             Every one of the 12 final runs solved 100,000 cubes with 0 failed/INVALID.
+             `./scripts/check.sh` passed; both 1M gates 0 invalid/0 failed, avg 31.343, max 41.
+Decision:    keep
+Notes:       Pure hot-path refinement; no table layout or stage behavior changes. Startup is
+             still reported separately: cold n=0 A 462.9 -> B 474.4 ms; warm medians A 454.2 ->
+             B 481.6 ms. The ~5% startup increase comes from Step 2's packing pass, not from
+             the facelet path. Logs/perf data: `/tmp/opencode/enxa-perf/`.
+
+### EXP-006: drop incremental permutation tables from the facelet path
+Date:        2026-11-21
+Tool:        enso
+Status:      implemented, benchmarked; iterating
+Hypothesis:  EXP-005 kept 1.45 MB cperm + pattern move tables to avoid recomputing stage-3
+             coordinates after every move. Those random lookups increased facelet cache misses
+             from ~24.5 to ~44.2 per solve and added startup work. Packed stages already yield
+             the next composite coordinate; the three factors are only needed at stage-3 entry
+             and stage-4 entry. Tracking cp/ep arrays (20 bytes) and ranking at those two
+             boundaries should cut table bytes and cache misses without losing latency.
+Kill if:     Interleaved A/B against the current EXP-005 candidate shows a reproducible p50 or
+             p99 regression beyond run-to-run drift, or any solution fails verification, or the
+             1M gate fails.
+Setup:       Branch `perf`, EXP-005 candidate frozen as A (`/tmp/opencode/enxa-perf/exp005-a-benchkit`),
+             EXP-006 candidate as B. Same v3 flags, seed 1, n=100000, cubie and `--facelets`,
+             six interleaved pairs. A start medians: cubie p50 1592.5 / p99 3498.5 ns; facelets
+             p50 2443 / p99 5587.5 ns; hot tables 8,959,752 bytes.
+Result:      Six interleaved pairs (`ab_{cubie,facelets}_exp006.log`). A vs B medians:
+             cubie p50 1629 -> 1582.5 ns (-2.9%), p99 3656.5 -> 3721 ns (+1.8%, noise; cubie
+             solve code is unchanged); facelets p50 2393.5 -> 2482 ns (+3.7%), p99 5796 -> 4868
+             ns (-16.0%), avg 2762.5 -> 2696.5 ns (-2.4%). Hot tables 8,959,752 -> 7,258,868
+             bytes (-19.0%). Perf deltas over the n=0 startup baseline, per solve: facelet cache
+             misses 44.2 -> 24.2, LLC 19.0 -> 10.1, L1 81.1 -> 35.5, dTLB 2.7 -> 1.3.
+             `cargo test --workspace --release` 25 passed; both 1M gates 0 invalid / 0 failed,
+             avg length 31.343, max 41.
+Decision:    iterate, not kept as-is: the cache/table hypothesis is confirmed, but the facelet
+             p50 regression is reproducible and triggers the kill criterion.
+Notes:       The per-move `% 3` / `% 2` divisions and unnecessary `eo`/`co` updates are the
+             likely cause of the median regression. EXP-007 tests that before choosing a final
+             variant. No solution was ever invalid.
 
 ### EXP-005: direct facelets -> stage coordinates
 Date:        2026-11-21
 Tool:        enso
-Status:      hypothesis only; no source change yet
+Status:      implemented, benchmarked; refined by EXP-006/007
 Hypothesis:  The remaining ~1.3 us facelet overhead is caused by parsing a 54-char string into a
              full `CubieCube`, then updating that cube after every emitted move. If facelets are
              validated once into the four stage coordinates and each descent step advances the
@@ -37,8 +117,16 @@ Setup:       Branch `perf`, Step 2 packed-stage candidate. Baseline for this exp
              remains the fixed external baseline for the final report. Same machine, seed 1,
              n=100000, cubie and `--facelets`, alternating A/B order. Current Step 2 medians:
              cubie p50 1565 ns / p99 3621.5 ns, facelets p50 2861 ns / p99 5935.5 ns.
-Decision:    pending
-Notes:       This is Step 3 from the plan. It is distinct from Step 2 and must be benchmarked
+Result:      Six interleaved pairs against the Step 2 candidate (`ab_{cubie,facelets}_step3.log`):
+             cubie p50 median 1588.5 -> 1592.5 ns (unchanged), p99 3597 -> 3498.5 ns;
+             facelets p50 median 3021.5 -> 2443 ns (-19.1%), p99 5870.5 -> 5587.5 ns (-4.8%).
+             Against the published v3 tarball (`ab_{cubie,facelets}_final.log`): cubie p50
+             2328.5 -> 1561.5 ns, p99 6853 -> 3439 ns; facelets p50 3587 -> 2489.5 ns,
+             p99 8978.5 -> 5399 ns. All runs 0 failed/INVALID. 1M cube gate and new 1M facelet
+             gate: 0 invalid, 0 failed, avg 31.343, max 41.
+Decision:    kept as the direct-path approach; the incremental move-table implementation was
+             then replaced by EXP-006/007 after measuring its cache cost.
+Notes:       This is Step 3 from the plan. It is distinct from Step 2 and was benchmarked
              separately; the cubie path is reported separately from the facelet path.
 
 ### EXP-004: external two-phase timing reference (kociemba)
@@ -71,7 +159,7 @@ Notes:       This is not an apples-to-apples quality comparison: kociemba return
 ### EXP-003: enso hot-path table packing and input path
 Date:        2026-11-21
 Tool:        enso
-Status:      Step 2 implemented and kept; Step 3 next
+Status:      Step 2 and Step 3 implemented and kept (EXP-005/006/007)
 Hypothesis:  The ~2.3 us solve is limited substantially by dependent loads over ~127 MB of
              move tables. Each descent step currently loads `best[x]` (u8) and then
              `table[x * 18 + best[x]]` (u16/u32), with the second load depending on the first.

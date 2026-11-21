@@ -7,13 +7,17 @@ use crate::cubie::CubieCube;
 
 pub const N_TWIST: usize = 2187; // 3^7
 
+pub(crate) fn twist_from_co(co: &[u8; 8]) -> usize {
+    let mut t = 0usize;
+    for i in 0..7 {
+        t = t * 3 + co[i] as usize;
+    }
+    t
+}
+
 impl CubieCube {
     pub fn twist(&self) -> usize {
-        let mut t = 0usize;
-        for i in 0..7 {
-            t = t * 3 + self.co[i] as usize;
-        }
-        t
+        twist_from_co(&self.co)
     }
 }
 

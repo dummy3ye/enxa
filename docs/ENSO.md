@@ -48,7 +48,7 @@ The third stage cannot use L/R quarter turns: they move UD-slice edges out of th
 
 ## Things most likely to actually matter
 
-1. **Input handling.** If input is a 54-char facelet string, parsing it into coordinates may cost more than the solve. Report both numbers. A SIMD coordinate extractor is a real, separate win.
+1. **Input handling.** If input is a 54-char facelet string, parsing it into coordinates may cost more than the solve. Report both numbers. enso now parses once into `FaceletParts` and descends on coordinates without building a `CubieCube` (EXP-005/006/007); a SIMD coordinate extractor is a separate potential win.
 2. **Memory latency.** A dependent-load chain is latency-bound. Pack `(move, next_coord)` into one entry so each step is one load. Use huge pages. Prefetch the next stage's table entries while finishing the current one.
 3. **Macro entries.** Instead of one move per lookup, let a stage entry hold a whole short move sequence (2-4 moves) when it fits. Fewer dependent loads, bigger tables. Measure.
 4. **Output.** Writing moves into a fixed `[u8; N]` buffer, no `Vec`.

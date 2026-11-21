@@ -268,6 +268,20 @@ mod tests {
     use cubecore::Rng;
 
     #[test]
+    fn hot_table_bytes_match_report() {
+        let t = tables();
+        use std::mem::size_of;
+        let bytes = t.st1.bytes()
+            + t.st2.bytes()
+            + t.st3.bytes()
+            + t.st4.bytes()
+            + t.corner_class.len() * size_of::<u8>()
+            + t.cp_idx.len() * size_of::<u16>()
+            + t.ep_idx.len() * size_of::<u16>();
+        assert_eq!(bytes, 7_258_868);
+    }
+
+    #[test]
     fn half_turns_preserve_g3_and_membership_is_exact() {
         let t = tables();
         let mut rng = Rng::new(103);

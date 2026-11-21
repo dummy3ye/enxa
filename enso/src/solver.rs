@@ -5,9 +5,9 @@
 
 use crate::chain::PackedStage;
 use crate::stages::{orient, r#final, slicecorner, tetrad};
-use crate::subgroup::{edge_rank, in_g1, in_g2};
+use crate::subgroup::{edge_rank, eor_pattern, in_g1, in_g2, tet_pattern};
 use crate::tables::Tables;
-use cubecore::{CubieCube, Move, Solver};
+use cubecore::{from_facelets_parts, CubieCube, Move, Solver, MOVES, N_SLICE};
 use std::time::Duration;
 
 /// Upper bound on emitted moves. Every stage's BFS depth is far below this.
@@ -32,6 +32,32 @@ fn descend(
         x = nx;
     }
     Ok(())
+}
+
+/// Apply one move to the cubie arrays that can still be read by a later stage.
+///
+/// `eo` is never needed after the initial flip and `co` only until the stage-2 coordinate is
+/// ranked, so callers pass `track_co = true` only in stage 1. `track_co` is a literal at every
+/// call site and this function is inlined, so the branch is eliminated in the hot loop.
+#[inline]
+fn apply_parts(parts: &mut cubecore::FaceletParts, m: u8, track_co: bool) {
+    let mv = &MOVES[m as usize];
+    let old_cp = parts.cp;
+    for i in 0..8 {
+        parts.cp[i] = old_cp[mv.cp[i] as usize];
+    }
+    if track_co {
+        let old_co = parts.co;
+        for i in 0..8 {
+            let s = old_co[mv.cp[i] as usize] + mv.co[i];
+            // Both operands are 0..2, so one conditional subtract is exactly `% 3`.
+            parts.co[i] = if s >= 3 { s - 3 } else { s };
+        }
+    }
+    let old_ep = parts.ep;
+    for i in 0..12 {
+        parts.ep[i] = old_ep[mv.ep[i] as usize];
+    }
 }
 
 pub struct Enso {
@@ -104,6 +130,84 @@ impl Enso {
 
         if !c.is_solved() {
             return Err("descent finished on an unsolved cube");
+        }
+        Ok(n)
+    }
+
+    /// Facelet input path: parse once into cubie arrays, update them with each emitted move,
+    /// and rank the three stage coordinates only at their boundaries. No `CubieCube` is
+    /// built and no large random-access move tables are read on this path.
+    pub fn solve_facelets_into(
+        &self,
+        s: &str,
+        out: &mut [u8; MAX_SOLUTION_LEN],
+    ) -> Result<usize, String> {
+        let mut parts = from_facelets_parts(s)?;
+        let t = &self.tables;
+        let mut n = 0usize;
+
+        macro_rules! emit {
+            ($m:expr) => {{
+                if n >= out.len() {
+                    return Err("solution buffer overflow".to_string());
+                }
+                out[n] = $m.0;
+                n += 1;
+            }};
+        }
+
+        // Stage 1: flip only; the packed step already yields the next flip coordinate.
+        let mut flip = parts.flip();
+        while flip != orient::GOAL {
+            let (m, nx) = t
+                .st1
+                .step(flip)
+                .ok_or_else(|| "stuck before stage goal".to_string())?;
+            emit!(m);
+            apply_parts(&mut parts, m.0, true);
+            flip = nx;
+        }
+
+        // Stage 2: (twist, slice), both ranked once from the arrays updated by stage 1.
+        let mut x2 = parts.twist() * N_SLICE + parts.slice_pos();
+        while x2 != slicecorner::GOAL {
+            let (m, nx) = t
+                .st2
+                .step(x2)
+                .ok_or_else(|| "stuck before stage goal".to_string())?;
+            emit!(m);
+            apply_parts(&mut parts, m.0, false);
+            x2 = nx;
+        }
+
+        // Stage 3: (tet, eor, corner class), also ranked once at the G2 boundary.
+        let tet = tet_pattern(&parts.cp);
+        let eor = eor_pattern(&parts.ep);
+        let mut x3 = (tet * 70 + eor) * 6 + t.corner_class[parts.cperm()] as usize;
+        while x3 != t.goal3 {
+            let (m, nx) = t
+                .st3
+                .step(x3)
+                .ok_or_else(|| "stuck before stage goal".to_string())?;
+            emit!(m);
+            apply_parts(&mut parts, m.0, false);
+            x3 = nx;
+        }
+
+        // Guard before indexing the full half-turn table: bad stage-3 output is an error.
+        let ci = t.cp_idx[parts.cperm()];
+        let ei = t.ep_idx[edge_rank(&parts.ep)];
+        if ci == u16::MAX || ei == u16::MAX {
+            return Err("stage 3 did not reach G3".to_string());
+        }
+        let mut x4 = ci as usize * r#final::NEP + ei as usize;
+        while x4 != r#final::GOAL {
+            let (m, nx) = t
+                .st4
+                .step(x4)
+                .ok_or_else(|| "stuck before stage goal".to_string())?;
+            emit!(m);
+            x4 = nx;
         }
         Ok(n)
     }

@@ -14,6 +14,7 @@
 //! Must NOT: implement a solver or change the measured metric.
 
 use cubecore::{from_facelets, random_alg, to_facelets, CubieCube, Move, Rng, Solver};
+use enso::{Enso, MAX_SOLUTION_LEN};
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -22,6 +23,25 @@ fn usage() -> ! {
         "usage: benchkit --solver <exa|enso> [--n N] [--seed S] [--depth D] [--facelets] [--batch] [--version]"
     );
     std::process::exit(2)
+}
+
+/// Bench-local extension so enso can be timed on facelet strings without parsing to a cube.
+/// Default preserves the original parse-then-solve path for every other solver.
+trait FaceletSolver: Solver {
+    fn solve_facelets(&mut self, s: &str) -> Option<Vec<Move>> {
+        let cube = from_facelets(s).expect("bad generated facelet string");
+        self.solve(&cube)
+    }
+}
+
+impl FaceletSolver for exa::Exa {}
+
+impl FaceletSolver for Enso {
+    fn solve_facelets(&mut self, s: &str) -> Option<Vec<Move>> {
+        let mut buf = [0u8; MAX_SOLUTION_LEN];
+        let n = self.solve_facelets_into(s, &mut buf).ok()?;
+        Some(buf[..n].iter().map(|&m| Move(m)).collect())
+    }
 }
 
 fn pct(sorted: &[u128], p: f64) -> u128 {
@@ -61,7 +81,7 @@ fn main() {
     }
 
     let t_start = Instant::now();
-    let mut solver: Box<dyn Solver> = match name.as_str() {
+    let mut solver: Box<dyn FaceletSolver> = match name.as_str() {
         "exa" => Box::new(exa::Exa::new()),
         "enso" => Box::new(enso::Enso::new()),
         _ => usage(),
@@ -92,10 +112,7 @@ fn main() {
         let solutions: Vec<Option<Vec<Move>>> = match &strings {
             Some(ss) => ss
                 .iter()
-                .map(|s| {
-                    let c = from_facelets(s).expect("bad generated facelet string");
-                    black_box(solver.solve(black_box(&c)))
-                })
+                .map(|s| black_box(solver.solve_facelets(black_box(s.as_str()))))
                 .collect(),
             None => cubes
                 .iter()
@@ -110,10 +127,7 @@ fn main() {
         for (idx, cube) in cubes.iter().enumerate() {
             let t = Instant::now();
             let sol = match &strings {
-                Some(ss) => {
-                    let c = from_facelets(&ss[idx]).expect("bad generated facelet string");
-                    black_box(solver.solve(black_box(&c)))
-                }
+                Some(ss) => black_box(solver.solve_facelets(black_box(ss[idx].as_str()))),
                 None => black_box(solver.solve(black_box(cube))),
             };
             times.push(t.elapsed().as_nanos());

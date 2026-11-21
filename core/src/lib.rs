@@ -26,7 +26,7 @@ pub use coord::{
     N_SLICE, N_TWIST, SLICE_SOLVED,
 };
 pub use cubie::{corner, edge, perm_parity, CubieCube, MOVES};
-pub use facelet::{from_facelets, to_facelets};
+pub use facelet::{from_facelets, from_facelets_parts, to_facelets, FaceletParts};
 pub use moves::{format_alg, parse_alg, random_alg, Move};
 pub use rng::Rng;
 pub use solver::Solver;
