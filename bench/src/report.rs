@@ -11,6 +11,20 @@ fn opt_num<T: Display>(v: Option<T>) -> String {
         .unwrap_or_else(|| "null".to_string())
 }
 
+fn opt_lengths(v: &Option<Vec<usize>>) -> String {
+    match v {
+        Some(values) => format!(
+            "[{}]",
+            values
+                .iter()
+                .map(usize::to_string)
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+        None => "null".to_string(),
+    }
+}
+
 #[derive(Clone)]
 pub struct Report {
     pub solver: String,
@@ -29,6 +43,7 @@ pub struct Report {
     pub invalid: usize,
     pub avg_length: f64,
     pub max_length: usize,
+    pub lengths: Option<Vec<usize>>,
     pub avg_ns: Option<f64>,
     pub p50_ns: Option<u128>,
     pub p99_ns: Option<u128>,
@@ -45,7 +60,7 @@ impl Report {
              \"input\": {},\n  \"timing\": {},\n  \"cube_file\": {},\n  \
              \"startup_ns\": {},\n  \"solved\": {},\n  \
              \"failed\": {},\n  \"invalid\": {},\n  \"avg_length\": {:.2},\n  \
-             \"max_length\": {},\n  \"avg_ns\": {},\n  \"p50_ns\": {},\n  \"p99_ns\": {},\n  \
+             \"max_length\": {},\n  \"lengths\": {},\n  \"avg_ns\": {},\n  \"p50_ns\": {},\n  \"p99_ns\": {},\n  \
              \"max_ns\": {},\n  \"batch_ns\": {},\n  \"throughput\": {:.0}\n}}\n",
             json_string(&self.solver),
             self.n,
@@ -66,6 +81,7 @@ impl Report {
             self.invalid,
             self.avg_length,
             self.max_length,
+            opt_lengths(&self.lengths),
             opt_num(self.avg_ns),
             opt_num(self.p50_ns),
             opt_num(self.p99_ns),
@@ -99,6 +115,7 @@ mod tests {
             invalid: 0,
             avg_length: 31.34,
             max_length: 41,
+            lengths: None,
             avg_ns: Some(100.5),
             p50_ns: Some(90),
             p99_ns: Some(110),
@@ -119,6 +136,7 @@ mod tests {
             "\"p99_ns\": 110",
             "\"batch_ns\": null",
             "\"avg_length\": 31.34",
+            "\"lengths\": null",
         ] {
             assert!(json.contains(field), "missing {field}");
         }

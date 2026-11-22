@@ -47,7 +47,7 @@ fn usage() -> ! {
     eprintln!(
         "usage: benchkit --solver <exa|enso> [--n N] [--seed S] [--depth D] [--facelets] \
          [--batch] [--json PATH] [--dump-cubes PATH] [--cube-file PATH] [--cubie] \
-         [--overhead] [--verify-file PATH] [--timeout-ms N] [--version]"
+         [--overhead] [--verify-file PATH] [--timeout-ms N] [--lengths] [--version]"
     );
     std::process::exit(2)
 }
@@ -189,7 +189,8 @@ fn main() {
         return;
     }
     let (mut name, mut n, mut seed, mut depth) = ("exa".to_string(), 100usize, 1u64, 0usize);
-    let (mut facelets, mut batch, mut overhead, mut cubie_input) = (false, false, false, false);
+    let (mut facelets, mut batch, mut overhead, mut cubie_input, mut include_lengths) =
+        (false, false, false, false, false);
     let (mut json_path, mut dump_path, mut cube_path, mut verify_path) = (None, None, None, None);
     let mut timeout_ms = None;
     let mut i = 0;
@@ -199,6 +200,7 @@ fn main() {
             "--cubie" => cubie_input = true,
             "--batch" => batch = true,
             "--overhead" => overhead = true,
+            "--lengths" => include_lengths = true,
             "--solver" | "--n" | "--seed" | "--depth" | "--json" | "--dump-cubes"
             | "--cube-file" | "--verify-file" | "--timeout-ms" => {
                 let val = args
@@ -332,11 +334,9 @@ fn main() {
         }
     } else {
         for (idx, cube) in cubes.iter().enumerate() {
-            if let Some(end) = deadline {
-                if Instant::now() >= end {
-                    timed_out = true;
-                    break;
-                }
+            if deadline.is_some_and(|end| Instant::now() >= end) {
+                timed_out = true;
+                break;
             }
             attempted += 1;
             let t = Instant::now();
@@ -383,6 +383,11 @@ fn main() {
         invalid,
         avg_length,
         max_length,
+        lengths: if include_lengths {
+            Some(lens.clone())
+        } else {
+            None
+        },
         avg_ns,
         p50_ns,
         p99_ns,
