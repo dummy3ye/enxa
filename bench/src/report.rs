@@ -15,6 +15,9 @@ fn opt_num<T: Display>(v: Option<T>) -> String {
 pub struct Report {
     pub solver: String,
     pub n: usize,
+    pub attempted: usize,
+    pub timed_out: bool,
+    pub timeout_ms: Option<u64>,
     pub seed: u64,
     pub depth: usize,
     pub input: String,
@@ -37,7 +40,8 @@ pub struct Report {
 impl Report {
     pub fn to_json(&self) -> String {
         format!(
-            "{{\n  \"solver\": {},\n  \"n\": {},\n  \"seed\": {},\n  \"depth\": {},\n  \
+            "{{\n  \"solver\": {},\n  \"n\": {},\n  \"attempted\": {},\n  \
+             \"timed_out\": {},\n  \"timeout_ms\": {},\n  \"seed\": {},\n  \"depth\": {},\n  \
              \"input\": {},\n  \"timing\": {},\n  \"cube_file\": {},\n  \
              \"startup_ns\": {},\n  \"solved\": {},\n  \
              \"failed\": {},\n  \"invalid\": {},\n  \"avg_length\": {:.2},\n  \
@@ -45,6 +49,9 @@ impl Report {
              \"max_ns\": {},\n  \"batch_ns\": {},\n  \"throughput\": {:.0}\n}}\n",
             json_string(&self.solver),
             self.n,
+            self.attempted,
+            self.timed_out,
+            opt_num(self.timeout_ms),
             self.seed,
             self.depth,
             json_string(&self.input),
@@ -78,6 +85,9 @@ mod tests {
         let report = Report {
             solver: "enso-variant-a".to_string(),
             n: 2,
+            attempted: 2,
+            timed_out: false,
+            timeout_ms: Some(1000),
             seed: 1,
             depth: 0,
             input: "facelets".to_string(),
@@ -100,6 +110,9 @@ mod tests {
         for field in [
             "\"solver\": \"enso-variant-a\"",
             "\"n\": 2",
+            "\"attempted\": 2",
+            "\"timed_out\": false",
+            "\"timeout_ms\": 1000",
             "\"seed\": 1",
             "\"cube_file\": \"cubes.txt\"",
             "\"p50_ns\": 90",

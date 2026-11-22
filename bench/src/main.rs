@@ -22,7 +22,7 @@ use cubecore::{from_facelets, random_alg, to_facelets, CubieCube, Move, Rng, Sol
 use enso::{Enso, MAX_SOLUTION_LEN};
 use report::Report;
 use std::hint::black_box;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 /// Bench-local extension so enso can be timed on facelet strings without parsing to a cube.
 /// Default preserves the original parse-then-solve path for every other solver.
@@ -47,7 +47,7 @@ fn usage() -> ! {
     eprintln!(
         "usage: benchkit --solver <exa|enso> [--n N] [--seed S] [--depth D] [--facelets] \
          [--batch] [--json PATH] [--dump-cubes PATH] [--cube-file PATH] [--overhead] \
-         [--verify-file PATH] [--version]"
+         [--verify-file PATH] [--timeout-ms N] [--version]"
     );
     std::process::exit(2)
 }
@@ -136,6 +136,14 @@ fn print_common(report: &Report) {
         report.solver, report.n, report.seed, report.depth, report.input, report.timing
     );
     println!("startup (tables) ns: {}", report.startup_ns);
+    if report.timed_out {
+        println!(
+            "TIMEOUT after {} ms: attempted {} of {}",
+            report.timeout_ms.unwrap_or(0),
+            report.attempted,
+            report.n
+        );
+    }
     println!(
         "solved: {}  failed: {}  INVALID: {}",
         report.solved, report.failed, report.invalid
@@ -185,6 +193,7 @@ fn main() {
     let (mut name, mut n, mut seed, mut depth) = ("exa".to_string(), 100usize, 1u64, 0usize);
     let (mut facelets, mut batch, mut overhead) = (false, false, false);
     let (mut json_path, mut dump_path, mut cube_path, mut verify_path) = (None, None, None, None);
+    let mut timeout_ms = None;
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
@@ -192,7 +201,7 @@ fn main() {
             "--batch" => batch = true,
             "--overhead" => overhead = true,
             "--solver" | "--n" | "--seed" | "--depth" | "--json" | "--dump-cubes"
-            | "--cube-file" | "--verify-file" => {
+            | "--cube-file" | "--verify-file" | "--timeout-ms" => {
                 let val = args
                     .get(i + 1)
                     .map(String::as_str)
@@ -206,6 +215,7 @@ fn main() {
                     "--dump-cubes" => dump_path = Some(val.to_string()),
                     "--cube-file" => cube_path = Some(val.to_string()),
                     "--verify-file" => verify_path = Some(val.to_string()),
+                    "--timeout-ms" => timeout_ms = Some(val.parse().unwrap_or_else(|_| usage())),
                     _ => unreachable!(),
                 }
                 i += 1;
@@ -268,11 +278,14 @@ fn main() {
         return;
     }
 
+    let deadline = timeout_ms.map(|ms| Instant::now() + Duration::from_millis(ms));
     let (mut times, mut lens) = (Vec::new(), Vec::new());
     let (mut failed, mut invalid) = (0usize, 0usize);
+    let (mut attempted, mut timed_out) = (0usize, false);
     let mut batch_ns = 0u128;
 
     if overhead {
+        attempted = n;
         if batch {
             let t = Instant::now();
             match &strings {
@@ -303,6 +316,7 @@ fn main() {
             }
         }
     } else if batch {
+        attempted = n;
         let t = Instant::now();
         let solutions: Vec<Option<Vec<Move>>> = match &strings {
             Some(ss) => ss
@@ -320,6 +334,13 @@ fn main() {
         }
     } else {
         for (idx, cube) in cubes.iter().enumerate() {
+            if let Some(end) = deadline {
+                if Instant::now() >= end {
+                    timed_out = true;
+                    break;
+                }
+            }
+            attempted += 1;
             let t = Instant::now();
             let sol = match &strings {
                 Some(ss) => black_box(solver.solve_facelets(black_box(ss[idx].as_str()))),
@@ -350,6 +371,9 @@ fn main() {
     let report = Report {
         solver: solver_name,
         n,
+        attempted,
+        timed_out,
+        timeout_ms,
         seed,
         depth,
         input: input.to_string(),

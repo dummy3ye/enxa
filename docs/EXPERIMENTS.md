@@ -33,8 +33,29 @@ Notes:       <what you learned>
 | EXP-010 | prefetch next packed entry | cubie p50 -11.0%, p99 -10.4%; facelets p50 -5.1%, p99 -6.3% | keep, default-on |
 | EXP-011 | two-move macro entries | cubie p50 +0.3% (fail), facelets p50 -4.9%; 2.0x table bytes | revert |
 | EXP-012 | fair 100k external comparison | pending | measurement |
+| EXP-013 | exa depth curve + BFS truth | pending | measurement |
 
 ## Log
+
+### EXP-013: exa depth curve and BFS truth
+Date:        2026-11-22
+Tool:        exa
+Status:      hypothesis recorded before the depth-curve measurements
+Hypothesis:  The baseline IDA* oracle will prove depth 8-11 scrambles quickly on seed 1, then
+             fall off sharply because its three projections are weak. A full BFS to depth 6 will
+             give exact distances that exa matches on every state through depth 4 and a sampled
+             prefix at depths 5-6, pinning correctness independently of the heuristic.
+Kill if:     BFS layer counts differ from the published HTM counts, exa returns a different length
+             for any BFS-truth state, or an external optimal solver cannot be installed/used; in
+             the last case the external cross-check is reported as unavailable, not substituted.
+Setup:       Planned: `benchkit --solver exa --seed 1 --depth D` for D=8..14 with an explicit
+             wall-clock timeout and partial JSON on timeout; `verify/tests/truth.rs` run with
+             `--ignored`; external `nissy` attempted outside the workspace. Exact commands,
+             per-depth counts and raw JSON will be added before any claim is made.
+Result:      pending
+Decision:    pending
+Notes:       exa may only print `optimal` when lower bound equals upper bound. The BFS test
+             checks exact lengths, not just solution validity.
 
 ### EXP-012: fair 100k external comparison and harness floor
 Date:        2026-11-22
