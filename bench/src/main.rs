@@ -46,8 +46,8 @@ impl FaceletSolver for Enso {
 fn usage() -> ! {
     eprintln!(
         "usage: benchkit --solver <exa|enso> [--n N] [--seed S] [--depth D] [--facelets] \
-         [--batch] [--json PATH] [--dump-cubes PATH] [--cube-file PATH] [--overhead] \
-         [--verify-file PATH] [--timeout-ms N] [--version]"
+         [--batch] [--json PATH] [--dump-cubes PATH] [--cube-file PATH] [--cubie] \
+         [--overhead] [--verify-file PATH] [--timeout-ms N] [--version]"
     );
     std::process::exit(2)
 }
@@ -79,7 +79,6 @@ fn load_cubes(
     n: usize,
     seed: u64,
     depth: usize,
-    facelets: &mut bool,
     loaded_depth: &mut usize,
 ) -> Vec<CubieCube> {
     let Some(path) = cube_path else {
@@ -111,7 +110,6 @@ fn load_cubes(
         eprintln!("cube file {path} has {} states, expected {n}", loaded.len());
         std::process::exit(1)
     }
-    *facelets = true;
     *loaded_depth = 0;
     loaded
 }
@@ -191,13 +189,14 @@ fn main() {
         return;
     }
     let (mut name, mut n, mut seed, mut depth) = ("exa".to_string(), 100usize, 1u64, 0usize);
-    let (mut facelets, mut batch, mut overhead) = (false, false, false);
+    let (mut facelets, mut batch, mut overhead, mut cubie_input) = (false, false, false, false);
     let (mut json_path, mut dump_path, mut cube_path, mut verify_path) = (None, None, None, None);
     let mut timeout_ms = None;
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
             "--facelets" => facelets = true,
+            "--cubie" => cubie_input = true,
             "--batch" => batch = true,
             "--overhead" => overhead = true,
             "--solver" | "--n" | "--seed" | "--depth" | "--json" | "--dump-cubes"
@@ -223,6 +222,12 @@ fn main() {
             _ => usage(),
         }
         i += 1;
+    }
+    if facelets && cubie_input {
+        usage()
+    }
+    if cube_path.is_some() && !cubie_input {
+        facelets = true;
     }
 
     if let Some(solution_path) = verify_path.as_deref() {
@@ -250,14 +255,7 @@ fn main() {
     let startup_ns = t_start.elapsed().as_nanos();
 
     let cube_file_report = cube_path.clone();
-    let cubes = load_cubes(
-        cube_path.as_ref(),
-        n,
-        seed,
-        depth,
-        &mut facelets,
-        &mut depth,
-    );
+    let cubes = load_cubes(cube_path.as_ref(), n, seed, depth, &mut depth);
     let mut strings: Option<Vec<String>> = if facelets {
         Some(cubes.iter().map(to_facelets).collect())
     } else {
