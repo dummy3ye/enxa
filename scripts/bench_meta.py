@@ -80,7 +80,7 @@ def metadata(cube_file, command):
             "commit": _git("rev-parse", "HEAD"),
             "dirty": bool(_git("status", "--porcelain")),
         },
-        "cube_file": str(cube_file),
+        "cube_file": str(cube_file) if cube_file else None,
         "cube_sha256": sha256_file(cube_file) if cube_file else None,
         "rustc": rustc,
         "rustflags": os.environ.get("RUSTFLAGS"),
@@ -107,7 +107,8 @@ def main():
         "--json", required=True, help="existing benchmark JSON to annotate"
     )
     parser.add_argument(
-        "--cube-file", required=True, help="cube file whose SHA-256 is recorded"
+        "--cube-file",
+        help="cube file whose SHA-256 is recorded; omit for generated inputs",
     )
     parser.add_argument(
         "--command", required=True, help="exact command that produced the JSON"
