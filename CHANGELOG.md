@@ -6,6 +6,34 @@ All notable changes are recorded here. Format follows Keep a Changelog-style hea
 
 No unreleased changes.
 
+## [0.2.0] - 2026-11-22
+
+### Added
+
+- Validated prebuilt enso table cache with magic/version/size/checksum, automatic rebuild on
+  mismatch, `enso --build-tables`, and a byte-identical roundtrip test.
+- Next-entry prefetch in the enso descent, enabled by default.
+- benchkit JSON reports plus `--cube-file`, `--dump-cubes`, `--cubie`, `--lengths`,
+  `--overhead`, `--verify-file` and `--timeout-ms`; machine metadata annotator and an external
+  kociemba harness that writes raw JSON and solution dumps for independent verification.
+- Ignored heavy BFS-to-depth-6 exa truth test in `verify/tests/truth.rs`.
+- `docs/data/cubes-100k-seed1.txt`: fixed 100,000 uniformly random facelet states used by every
+  fair comparison.
+
+### Changed
+
+- Packed descent table entries and direct facelet coordinate descent in enso; EXPs 001-011 in
+  `docs/EXPERIMENTS.md` record measured outcomes, including the rejected two-move macro and
+  huge-page attempts.
+- Benchmark rules and methodology rewritten in `docs/BENCHMARKING.md`; raw JSON reports live in
+  `docs/data/`.
+- Workspace package version is now `0.2.0`; `Cargo.lock` was refreshed with it.
+
+### Known limits
+
+- enso returns valid but non-optimal solutions; exa is optimal but not tuned for deep random
+  states. They remain two distinct tools.
+
 ## [0.1.0] - 2026-11-21
 
 ### Added

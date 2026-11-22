@@ -36,7 +36,7 @@ use ordinary names; crate names and Rust identifiers are unaffected.
 
 ## Cutting a release
 
-`v0.1.0` is the first numbered pre-release. The process is:
+`v0.2.0` is the current numbered release. The process is:
 
 1. Ensure `Cargo.toml` has the intended workspace version, `Cargo.lock` is refreshed, and
    `CHANGELOG.md` has a dated `## [<version>]` section with Added, Changed and Known limits.
@@ -46,17 +46,21 @@ use ordinary names; crate names and Rust identifiers are unaffected.
    `dist/SHA256SUMS`, verifies them, smoke-tests the unpacked binaries, and prints v3 benchmark
    numbers. It does not create or push a tag.
 3. Read the dry-run output and `git diff` / `git status --short`, stage any new release files,
-   and commit with `git commit -am "release: v<version>"`.
-4. Create a signed tag if signing is configured, otherwise an annotated tag:
-   `git tag -s v<version> -m "enxa v<version>" || git tag -a v<version> -m "enxa v<version>"`.
-5. Push: `git push origin main v<version>`. The tag-triggered workflow verifies, builds both
-   flavors, publishes checksums and attestations, and creates a pre-release.
-6. Watch the workflow run, open the release page, and confirm it is marked Pre-release. Verify a
-   download with `sha256sum -c SHA256SUMS`, `gh attestation verify <file> --repo <owner>/<repo>`
-   and `tar xzf <file> && ./enso --version`.
-7. If the workflow fails before anyone downloads anything, the tag may be deleted locally and
-   remotely, the problem fixed, and the tag recreated. After any download, never move the
-   published tag: release `<next-version>` instead.
+   and commit with `git commit -am "release: v<version>"`. Push the commit with
+   `git push origin main`. Do not create or push a local tag.
+4. Dispatch the `release` workflow from the Actions tab, or with
+   `gh workflow run release.yml -f version=<version>`. It re-runs the health checks (including
+   the 1M gate and `python3 scripts/assets.py --check`), builds both portable flavors, verifies
+   checksums, smoke-tests the archives, uploads build-provenance attestations, and creates a
+   **normal** release marked Latest. The GitHub release API creates the annotated tag; GitHub
+   signs it, so no local GPG key is needed.
+5. Watch the workflow, then confirm the release page is marked Latest with both tarballs,
+   `SHA256SUMS` and attestations. Verify a download with `sha256sum -c SHA256SUMS`,
+   `gh attestation verify <file> --repo dummy3ye/enxa` and `tar xzf <file> && ./enso --version`.
+   Confirm the tag is verified with
+   `gh api repos/dummy3ye/enxa/git/ref/tags/v<version>` followed by a `git/tags/<sha>` query.
+6. If the workflow fails before anyone downloads anything, fix the problem and re-dispatch.
+   After any download, never move the published tag: release `<next-version>` instead.
 
 ## Report format
 

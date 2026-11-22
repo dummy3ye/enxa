@@ -18,12 +18,12 @@ enso is **not** a stub. See `docs/ROADMAP.md` for M4–M9.
 
 ## Install
 
-Download the pre-release tarball for your CPU from the GitHub release page:
+Download the release tarball for your CPU from the GitHub release page:
 
 | Flavor | File | Required CPU features | Pick it when |
 |--------|------|-----------------------|--------------|
-| v2 | `enxa-0.1.0-x86_64-linux-v2.tar.gz` | x86-64-v2 baseline (SSE4.2, SSSE3, POPCNT, CMPXCHG16B, LAHF/SAHF) | Older x86-64 machines or unknown CPUs |
-| v3 | `enxa-0.1.0-x86_64-linux-v3.tar.gz` | x86-64-v3 baseline (AVX, AVX2, BMI1/2, FMA, LZCNT, MOVBE, XSAVE) | Modern desktop/server CPUs with AVX2 |
+| v2 | `enxa-0.2.0-x86_64-linux-v2.tar.gz` | x86-64-v2 baseline (SSE4.2, SSSE3, POPCNT, CMPXCHG16B, LAHF/SAHF) | Older x86-64 machines or unknown CPUs |
+| v3 | `enxa-0.2.0-x86_64-linux-v3.tar.gz` | x86-64-v3 baseline (AVX, AVX2, BMI1/2, FMA, LZCNT, MOVBE, XSAVE) | Modern desktop/server CPUs with AVX2 |
 
 Check for AVX2 on Linux:
 
@@ -35,10 +35,10 @@ If that prints `avx2`, use the v3 tarball. Otherwise use v2. Verify a download w
 
 ```bash
 sha256sum -c SHA256SUMS
-gh attestation verify enxa-0.1.0-x86_64-linux-v3.tar.gz --repo <owner>/<repo>
+gh attestation verify enxa-0.2.0-x86_64-linux-v3.tar.gz --repo <owner>/<repo>
 ```
 
-Replace the filename and `<owner>/<repo>` with the values from your release page.
+The files are published on the [v0.2.0 release page](https://github.com/dummy3ye/enxa/releases/tag/v0.2.0).
 
 ## Layout
 
