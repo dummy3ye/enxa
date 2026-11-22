@@ -38,20 +38,14 @@ def sha256_file(path):
 
 
 def metadata(cube_file, command):
-    cpu = _read_first("/proc/cpuinfo")
-    model = cpu.split(":", 1)[1].strip() if cpu and ":" in cpu else None
-    flags_line = (
-        next(
-            (
-                line
-                for line in Path("/proc/cpuinfo").read_text().splitlines()
-                if line.startswith("flags")
-            ),
-            None,
-        )
+    cpuinfo = (
+        Path("/proc/cpuinfo").read_text().splitlines()
         if Path("/proc/cpuinfo").exists()
-        else None
+        else []
     )
+    model_line = next((line for line in cpuinfo if line.startswith("model name")), None)
+    model = model_line.split(":", 1)[1].strip() if model_line else None
+    flags_line = next((line for line in cpuinfo if line.startswith("flags")), None)
     freq_dir = Path("/sys/devices/system/cpu/cpu0/cpufreq")
     cpu_freq = {}
     for field in ("scaling_governor", "scaling_min_freq", "scaling_max_freq"):
