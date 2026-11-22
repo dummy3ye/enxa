@@ -53,6 +53,7 @@ fn bfs_to_depth_six_matches_exa_distances() {
     );
     assert_eq!(sampled5, 128);
     assert_eq!(sampled6, 128);
+    drop(frontier);
 
     let mut exa = Exa::new();
     for (index, (cube, truth)) in checks.iter().enumerate() {
