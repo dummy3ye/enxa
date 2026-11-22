@@ -32,8 +32,32 @@ Notes:       <what you learned>
 | EXP-009 step 0 | re-profile after table packing/cache | dependent loads still dominate; prefetch and macro entries tried, huge pages skipped | guide only |
 | EXP-010 | prefetch next packed entry | cubie p50 -11.0%, p99 -10.4%; facelets p50 -5.1%, p99 -6.3% | keep, default-on |
 | EXP-011 | two-move macro entries | cubie p50 +0.3% (fail), facelets p50 -4.9%; 2.0x table bytes | revert |
+| EXP-012 | fair 100k external comparison | pending | measurement |
 
 ## Log
+
+### EXP-012: fair 100k external comparison and harness floor
+Date:        2026-11-22
+Tool:        enso + external kociemba (timing reference only)
+Status:      hypothesis recorded before the external harness was written
+Hypothesis:  On 100,000 uniform random seed-1 states dumped to one committed facelet file, enso's
+             cubie and facelet paths will both stay well below the two-phase reference at p50 and
+             p99, while kociemba will return shorter valid solutions. Reporting the harness loop
+             floor and two max-depth settings prevents a wrapper or one tuning setting from being
+             mistaken for solver performance.
+Kill if:     The external tool cannot be installed or cannot consume the same facelet file; any
+             solution fails independent verification; the same file cannot be used for enso and
+             the reference; or an obvious input/format mismatch makes the comparison meaningless.
+             In that case the comparison is reported as unavailable, not replaced by a substitute.
+Setup:       Planned: 100,000 states from `cubecore::Rng::new(1)` and `CubieCube::random`,
+             written by `benchkit --dump-cubes` to `docs/data/cubes-100k-seed1.txt`; the same file
+             is read by `benchkit --cube-file` and by an isolated external Python driver. Exact
+             commands, CPU metadata, commit and raw JSON will be added to `docs/data/` and linked
+             here before any claim is made.
+Result:      pending
+Decision:    pending
+Notes:       The earlier 50-cube EXP-004 comparison used depth-8 scrambles and is not reused as a
+             fair 100k result. This experiment supersedes it for the final report.
 
 ### EXP-009 step 0: re-profile the packed descent path
 Date:        2026-11-22
