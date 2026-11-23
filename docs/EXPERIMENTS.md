@@ -33,7 +33,7 @@ Notes:       <what you learned>
 | EXP-010 | prefetch next packed entry | cubie p50 -11.0%, p99 -10.4%; facelets p50 -5.1%, p99 -6.3% | keep, default-on |
 | EXP-011 | two-move macro entries | cubie p50 +0.3% (fail), facelets p50 -4.9%; 2.0x table bytes | revert |
 | EXP-012 | fair 100k external comparison | measured | measurement |
-| EXP-013 | exa depth curve + BFS truth | pending | measurement |
+| EXP-013 | exa depth curve + BFS truth | measured | measurement |
 
 ## Log
 
@@ -52,10 +52,33 @@ Setup:       Planned: `benchkit --solver exa --seed 1 --depth D` for D=8..14 wit
              wall-clock timeout and partial JSON on timeout; `verify/tests/truth.rs` run with
              `--ignored`; external `nissy` attempted outside the workspace. Exact commands,
              per-depth counts and raw JSON will be added before any claim is made.
-Result:      pending
-Decision:    pending
+Result:      Depth curve measured 2026-11-23 on the pinned Intel Core i3-1005G1 at 3.4 GHz
+             (same metadata policy as EXP-012). Command per depth:
+             `target/release/benchkit --solver exa --n 20 --seed 1 --depth D --timeout-ms 300000 --json docs/data/exa-depth-D.json`
+             plus `scripts/bench_meta.py`. p50 by depth 8..14: 70,350 ns, 421,863 ns,
+             4,355,446 ns, 51,537,915 ns, 499,405,563 ns, 6.53 s, 37.75 s. Depth 14 timed out
+             after 6 of 20 attempted solves; all other depths completed 20/20. Failed=0 and
+             invalid=0 everywhere; each depth's mean solution length equalled the scramble depth
+             (8.00 through 14.00). Raw JSON: `docs/data/exa-depth-{8..14}.json`.
+
+             BFS truth: `cargo test -p verify --release --test truth -- --ignored --nocapture`
+             produced layer counts 1, 18, 243, 3,240, 43,239, 574,908, 7,618,438 and
+             `checked 46997 states against BFS truth`; the test passed in 3.96 s. Every checked
+             exa solution was valid and had exactly the BFS distance.
+
+             External cross-check attempt: PyPy 3.12 plus RubikOptimal 1.1.0 installed under
+             `/tmp/opencode/rubikoptimal` (download and pip install both succeeded), but the
+             ~963 MB table generation did not finish: two host/agent restarts cleared that tmpfs
+             mid-generation, and free memory fell to about 1.2 GiB versus the ~2 GiB the solver
+             needs. No external optimal length was obtained. This is reported as unavailable,
+             not substituted with kociemba (which is not an optimal solver).
+Decision:    Keep the baseline exa as the oracle. The depth cliff is real and is now measured;
+             BFS-to-depth-6 is the independent exact-length check. The external optimal
+             cross-check remains an open task, explicitly blocked by environment restarts and
+             memory pressure, and no external-optimal claim is made for v0.2.0.
 Notes:       exa may only print `optimal` when lower bound equals upper bound. The BFS test
-             checks exact lengths, not just solution validity.
+             checks exact lengths, not just solution validity. The timed-out depth-14 JSON keeps
+             its partial counts instead of being hidden or rescaled.
 
 ### EXP-012: fair 100k external comparison and harness floor
 Date:        2026-11-22

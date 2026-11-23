@@ -18,8 +18,10 @@ Status key: [x] done, [ ] todo. Update this file in the same change that finishe
 
 ## M2: exa baseline
 - [x] IDA* with 3 admissible projections (reference oracle)
-- [ ] benchmark depth curve 8..14, record in EXPERIMENTS.md
-- [ ] cross-check against an external optimal solver on 100 scrambles
+- [x] benchmark depth curve 8..14, recorded in `docs/data/exa-depth-*.json` and EXP-013
+- [x] independent BFS-to-depth-6 exact-length truth test (`verify/tests/truth.rs`)
+- [ ] external optimal cross-check: RubikOptimal/PyPy install succeeded but table generation was
+      cleared twice by host restarts; no external optimal lengths claimed (EXP-013)
 
 ## M3: enso v1 (Variant A, Thistlethwaite chain)
 - [x] `DescentStage` building block + test
@@ -53,5 +55,6 @@ Status key: [x] done, [ ] todo. Update this file in the same change that finishe
 - [ ] CPU implementation, then GPU
 
 ## M9: publish
-- [ ] reproducible benchmark report, honest comparison with nissy / min2phase
-- [ ] failed ideas documented
+- [x] reproducible benchmark report with honest external kociemba timing reference and raw JSON
+      in `docs/data/` (EXP-012); nissy/optimal cross-check unavailable (EXP-013)
+- [x] failed ideas documented (EXP-009, EXP-011 and the EXP-013 external-solver attempt)
