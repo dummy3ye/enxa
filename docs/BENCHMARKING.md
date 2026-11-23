@@ -46,3 +46,25 @@ file, writes every returned solution to a dump for independent Rust verification
 the no-op call floor, and emits raw JSON with per-solve lengths and times. Two `max_depth`
 settings are measured; a shallow depth that causes pathological search is reported as a
 failed attempt rather than quietly chosen as the headline number.
+
+### Result (2026-11-22/23)
+
+Hardware: Intel Core i3-1005G1 @ 1.20 GHz, 4 logical CPUs pinned to `performance`,
+3,400,000 kHz min/max and EPP `performance`; Linux 7.2.14-arch1-1; rustc 1.97.1; v3 build.
+Every number below comes from the committed JSON named in EXP-012 in
+`docs/EXPERIMENTS.md`; medians are across five runs where applicable.
+
+| measurement | p50 | p99 | mean length | solved / invalid |
+|-------------|-----|-----|-------------|------------------|
+| enso, cubie input | 1,607 ns | 3,073 ns | 31 | 100,000 / 0 |
+| enso, facelet input | 3,564 ns | 9,712 ns | 31 | 100,000 / 0 |
+| enso, batch facelets | 2,458 ns/solve | n/a | 31 | 100,000 / 0 |
+| harness floor, no solve | 21 ns | 27-29 ns | n/a | n/a |
+| kociemba 1.2.1, max_depth 24 | 15.93 ms | 135.27 ms | 20.77 | 100,000 / 0 |
+| kociemba 1.2.1, max_depth 21 | 14.69 ms | 526.92 ms | 20.59 | 100,000 / 0 |
+
+enso's startup (table load/build) is 14-18 ms and is reported separately, never folded into
+per-solve latency. Both kociemba solution dumps were independently re-verified with
+`benchkit --verify-file`: 100,000 valid, 0 unparseable, 0 invalid at each depth. The 2,458
+ns/solve batch figure comes from the median `batch_ns` of 245,842,930 ns divided by 100,000;
+batch timing deliberately omits per-solve `Instant` pairs.

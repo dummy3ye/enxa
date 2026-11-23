@@ -32,7 +32,7 @@ Notes:       <what you learned>
 | EXP-009 step 0 | re-profile after table packing/cache | dependent loads still dominate; prefetch and macro entries tried, huge pages skipped | guide only |
 | EXP-010 | prefetch next packed entry | cubie p50 -11.0%, p99 -10.4%; facelets p50 -5.1%, p99 -6.3% | keep, default-on |
 | EXP-011 | two-move macro entries | cubie p50 +0.3% (fail), facelets p50 -4.9%; 2.0x table bytes | revert |
-| EXP-012 | fair 100k external comparison | pending | measurement |
+| EXP-012 | fair 100k external comparison | measured | measurement |
 | EXP-013 | exa depth curve + BFS truth | pending | measurement |
 
 ## Log
@@ -75,10 +75,53 @@ Setup:       Planned: 100,000 states from `cubecore::Rng::new(1)` and `CubieCube
              is read by `benchkit --cube-file` and by an isolated external Python driver. Exact
              commands, CPU metadata, commit and raw JSON will be added to `docs/data/` and linked
              here before any claim is made.
-Result:      pending
-Decision:    pending
+Result:      Measured on 2026-11-22/23 with Intel Core i3-1005G1 @ 1.20 GHz (4 logical CPUs),
+             pinned to `performance`, 3,400,000 kHz min/max and EPP `performance`; Linux
+             7.2.14-arch1-1, rustc 1.97.1. The v3 binary was built with
+             `RUSTFLAGS="-C target-cpu=x86-64-v3 --remap-path-prefix=/home/raven/enxa=." cargo build --release -p benchkit`.
+             The fixed file is `docs/data/cubes-100k-seed1.txt` (SHA-256
+             `94b1f7accc7eee0196e6c7a01a17d99dba65e87f22e947adbbefe862e4e905b7`).
+             Exact commands (each repeated five times for enso, with `scripts/bench_meta.py`):
+             `target/release/benchkit --solver enso --cube-file docs/data/cubes-100k-seed1.txt --n 100000 [--cubie|--batch] --json docs/data/<name>.json`;
+             the floor used the same command plus `--overhead` (and `--cubie` where labelled).
+             External commands:
+             `/tmp/opencode/enxa-kociemba-venv/bin/python scripts/external_kociemba.py --cubes docs/data/cubes-100k-seed1.txt --max-depth 24 --solutions /tmp/opencode/enxa-perf/kociemba-d24-100k-seed1.txt --json docs/data/kociemba-d24-100k-seed1.json --command external-kociemba-d24`
+             and the same with 21; verification used
+             `target/release/benchkit --cube-file docs/data/cubes-100k-seed1.txt --verify-file /tmp/opencode/enxa-perf/kociemba-d<21|24>-100k-seed1.txt --json docs/data/kociemba-d<21|24>-verify.json`.
+
+             Median of five runs, per solve unless noted:
+             | path | p50 | p99 | avg | startup |
+             |------|-----|-----|-----|---------|
+             | enso cubie | 1,607 ns | 3,073 ns | 1,809 ns | 16.8 ms |
+             | enso facelets | 3,564 ns | 9,712 ns | 3,808 ns | 18.1 ms |
+             | enso facelets batch | 2,458 ns/solve (`batch_ns`/n) | n/a | n/a | 14.1 ms |
+             | overhead cubie (no solve) | 21 ns | 29 ns | 22 ns | 15.9 ms |
+             | overhead facelets (no solve) | 21 ns | 27 ns | 21 ns | 14.9 ms |
+             All 15 enso runs: 100,000 solved, 0 failed, 0 invalid; mean length 31 moves, max 41.
+             The harness floor is about 1.3% of the cubie p50, so it does not explain the result.
+
+             kociemba 1.2.1, same 100,000 states:
+             | max_depth | p50 | p99 | avg | mean length | max | solved/failed/invalid/over_depth |
+             |-----------|-----|-----|-----|-------------|-----|----------------------------------|
+             | 24 | 15,934,020 ns | 135,265,492 ns | 25,161,305 ns | 20.77 | 23 | 100000/0/0/0 |
+             | 21 | 14,686,947 ns | 526,922,688 ns | 48,016,556 ns | 20.59 | 21 | 100000/0/0/0 |
+             Independent Rust verification: 100,000 valid, 0 unparseable, 0 invalid for both
+             settings. Depth 21 is faster at p50 but has a 527 ms p99; the previously tried
+             depth 20 had a 2.98 s max on 20 cubes, so 21 and 24 are the reported settings.
+             enso's cubie p50 is about 9,900x faster than kociemba d24 (about 9,100x vs d21);
+             facelets p50 about 4,500x faster (about 4,100x vs d21). That speed buys valid but
+             longer solutions: enso averages 31 moves versus kociemba's 20.6-20.8.
+             Raw JSON: `docs/data/enso-*-run?.json`, `docs/data/overhead-*-run?.json`,
+             `docs/data/kociemba-d{21,24}-100k-seed1.json` and the two `*-verify.json` files.
+Decision:    Keep the comparison as the honest reference point for v0.2.0. enso is reported as the
+             speed tool with its 31-move solutions; kociemba is reported only as an external
+             timing reference with shorter solutions, never as a repo dependency or second goal.
 Notes:       The earlier 50-cube EXP-004 comparison used depth-8 scrambles and is not reused as a
-             fair 100k result. This experiment supersedes it for the final report.
+             fair 100k result. This experiment supersedes it for the final report. A metadata
+             bug in the first `bench_meta.py` version wrote `cpu_model: "0"` into the d24 JSON;
+             that single field was corrected to the observed model. No measurement field or
+             timestamp was changed. The d24 measurement was taken before, and d21 after, the
+             commit that fixed `bench_meta.py`; each JSON records its own commit.
 
 ### EXP-009 step 0: re-profile the packed descent path
 Date:        2026-11-22
