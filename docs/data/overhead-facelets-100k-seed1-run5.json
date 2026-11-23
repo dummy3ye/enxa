@@ -1,0 +1,54 @@
+{
+  "solver": "overhead-loop",
+  "n": 100000,
+  "attempted": 100000,
+  "timed_out": false,
+  "timeout_ms": null,
+  "seed": 1,
+  "depth": 0,
+  "input": "facelets",
+  "timing": "per-solve",
+  "cube_file": "docs/data/cubes-100k-seed1.txt",
+  "startup_ns": 12574962,
+  "solved": 0,
+  "failed": 0,
+  "invalid": 0,
+  "avg_length": 0.0,
+  "max_length": 0,
+  "lengths": null,
+  "avg_ns": 21.16392,
+  "p50_ns": 21,
+  "p99_ns": 26,
+  "max_ns": 14501,
+  "batch_ns": null,
+  "throughput": 47250226,
+  "meta": {
+    "annotated_at_utc": "2026-11-23T10:25:06.794862+00:00",
+    "command": "target/release/benchkit --solver enso --cube-file docs/data/cubes-100k-seed1.txt --n 100000 --overhead --json docs/data/overhead-facelets-100k-seed1-run5.json",
+    "git": {
+      "commit": "d18086d0ceaaea04c52e9bdda9f9866579b2e613",
+      "dirty": true
+    },
+    "cube_file": "docs/data/cubes-100k-seed1.txt",
+    "cube_sha256": "94b1f7accc7eee0196e6c7a01a17d99dba65e87f22e947adbbefe862e4e905b7",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "rustflags": null,
+    "machine": {
+      "cpu_model": "Intel(R) Core(TM) i3-1005G1 CPU @ 1.20GHz",
+      "cpu_flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch cpuid_fault epb ssbd ibrs ibpb stibp ibrs_enhanced tpr_shadow flexpriority ept vpid ept_ad fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt intel_pt avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves split_lock_detect dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp hwp_pkg_req vnmi avx512vbmi umip pku ospke avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm md_clear flush_l1d arch_capabilities",
+      "os": "Linux-7.2.14-arch1-1-x86_64-with-glibc2.44",
+      "python": "3.14.9",
+      "logical_cpus": 4
+    },
+    "cpu_freq": {
+      "scaling_governor": "performance",
+      "scaling_min_freq": "3400000",
+      "scaling_max_freq": "3400000",
+      "scaling_cur_freq": [
+        "3000000",
+        "3000771",
+        "3002886"
+      ]
+    }
+  }
+}
