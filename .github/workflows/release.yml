@@ -76,6 +76,26 @@ jobs:
         with:
           subject-path: dist/*.tar.gz
 
+      - name: Verify artifact attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for file in dist/*.tar.gz; do
+            ok=0
+            for attempt in 1 2 3 4 5; do
+              if gh attestation verify "$file" \
+                --repo "${GITHUB_REPOSITORY}" \
+                --signer-workflow "${GITHUB_REPOSITORY}/.github/workflows/release.yml" \
+                --source-ref "${GITHUB_REF}"; then
+                ok=1
+                break
+              fi
+              sleep 3
+            done
+            test "$ok" = 1
+          done
+
       - name: Upload artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -83,6 +103,23 @@ jobs:
           path: |
             dist/*.tar.gz
             dist/SHA256SUMS
+
+      - name: Create annotated release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          tag_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags" \
+            -f "tag=v${VERSION}" \
+            -f "message=enxa v${VERSION}" \
+            -f "object=${GITHUB_SHA}" \
+            -f type=commit \
+            --jq .sha)"
+          gh api "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f "ref=refs/tags/v${VERSION}" \
+            -f "sha=${tag_sha}" >/dev/null
+          echo "created v${VERSION} -> ${tag_sha}"
 
       - name: Create published release
         env:
@@ -92,13 +129,12 @@ jobs:
           set -euo pipefail
           bash scripts/releasenotes.sh "$VERSION" RELEASE_NOTES.md
           gh release create "v${VERSION}" \
-            --target "${GITHUB_SHA}" \
             --title "enxa v${VERSION}" \
             --notes-file RELEASE_NOTES.md \
             --latest \
             dist/*.tar.gz dist/SHA256SUMS
 
-      - name: Verify GitHub-signed tag
+      - name: Verify published release and tag
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
@@ -111,7 +147,19 @@ jobs:
             exit 1
           fi
           sha="$(printf '%s' "$ref" | jq -r .object.sha)"
-          verification="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${sha}" \
-            --jq '.verification | {verified, reason}')"
-          echo "$verification"
-          printf '%s' "$verification" | jq -e '.verified == true'
+          tag="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${sha}")"
+          tagged_sha="$(printf '%s' "$tag" | jq -r .object.sha)"
+          if [ "$tagged_sha" != "${GITHUB_SHA}" ]; then
+            echo "tag points to $tagged_sha, expected ${GITHUB_SHA}" >&2
+            exit 1
+          fi
+          printf '%s' "$tag" | jq '{tag, target: .object.sha, verification: {verified, reason}}'
+          echo "GitHub's release APIs create annotated but unsigned tag objects; tarball provenance is attested separately."
+          view="$(gh release view "v${VERSION}" --json url,tagName,isDraft,isPrerelease,assets)"
+          printf '%s' "$view" | jq -e '.isDraft == false and .isPrerelease == false and .tagName == ("v" + $ENV.VERSION)'
+          latest="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name)"
+          if [ "$latest" != "v${VERSION}" ]; then
+            echo "latest release is $latest, expected v${VERSION}" >&2
+            exit 1
+          fi
+          printf '%s' "$view" | jq '{url, tagName, assets: [.assets[].name]}'

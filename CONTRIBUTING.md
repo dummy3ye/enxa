@@ -51,14 +51,16 @@ use ordinary names; crate names and Rust identifiers are unaffected.
 4. Dispatch the `release` workflow from the Actions tab, or with
    `gh workflow run release.yml -f version=<version>`. It re-runs the health checks (including
    the 1M gate and `python3 scripts/assets.py --check`), builds both portable flavors, verifies
-   checksums, smoke-tests the archives, uploads build-provenance attestations, and creates a
-   **normal** release marked Latest. The GitHub release API creates the annotated tag; GitHub
-   signs it, so no local GPG key is needed.
-5. Watch the workflow, then confirm the release page is marked Latest with both tarballs,
-   `SHA256SUMS` and attestations. Verify a download with `sha256sum -c SHA256SUMS`,
+   checksums, smoke-tests the archives, creates and verifies signed build-provenance attestations,
+   creates an annotated tag via the GitHub API, and creates a **normal** release marked Latest.
+   The API-created tag is annotated but unsigned; GitHub cannot sign a tag without a signing key
+   registered to an account (EXP-014).
+5. Watch the workflow, then confirm the release page is marked Latest with both tarballs and
+   `SHA256SUMS`. Verify a download with `sha256sum -c SHA256SUMS`,
    `gh attestation verify <file> --repo dummy3ye/enxa` and `tar xzf <file> && ./enso --version`.
-   Confirm the tag is verified with
-   `gh api repos/dummy3ye/enxa/git/ref/tags/v<version>` followed by a `git/tags/<sha>` query.
+   Confirm the tag is annotated and points at the release commit with
+   `gh api repos/dummy3ye/enxa/git/ref/tags/v<version>` followed by a `git/tags/<sha>` query;
+   expect `verification.reason` to be `unsigned` and report it as such.
 6. If the workflow fails before anyone downloads anything, fix the problem and re-dispatch.
    After any download, never move the published tag: release `<next-version>` instead.
 

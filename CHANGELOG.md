@@ -6,7 +6,7 @@ All notable changes are recorded here. Format follows Keep a Changelog-style hea
 
 No unreleased changes.
 
-## [0.2.0] - 2026-11-22
+## [0.2.0] - 2026-11-25
 
 ### Added
 
@@ -32,9 +32,30 @@ No unreleased changes.
   `docs/data/`.
 - Workspace package version is now `0.2.0`; `Cargo.lock` was refreshed with it.
 - Root and crate READMEs now carry measured numbers traced to `docs/data/*.json`.
-- The release workflow is manually dispatched with a version input, builds and attests both
-  portable tarballs via GitHub Actions, and creates a normal Latest release. GitHub creates and
-  signs the annotated tag, so no local GPG key is needed.
+- The release workflow is manually dispatched with a version input, builds both portable
+  tarballs, verifies their signed build-provenance attestations before publishing, creates an
+  annotated tag via the GitHub API, and creates a normal Latest release. The API-created tag is
+  annotated but unsigned; a cryptographically signed tag would require a key registered to a
+  GitHub account (EXP-014).
+
+### Measured v0.2.0 results
+
+Every number below comes from committed JSON in `docs/data/`; commands, CPU metadata and
+decisions are in `docs/EXPERIMENTS.md` (EXP-012/013).
+
+| measurement | p50 | p99 | mean length | evidence |
+|-------------|-----|-----|-------------|----------|
+| enso, cubie input, 5-run median | 1,607 ns | 3,073 ns | 31 | `docs/data/enso-cubie-100k-seed1-run*.json` |
+| enso, facelet input, 5-run median | 3,564 ns | 9,712 ns | 31 | `docs/data/enso-facelets-100k-seed1-run*.json` |
+| enso, batch facelets, 5-run median | 2,458 ns/solve | n/a | 31 | `docs/data/enso-facelets-batch-100k-seed1-run*.json` |
+| harness floor, no solve | 21 ns | 27–29 ns | n/a | `docs/data/overhead-*-100k-seed1-run*.json` |
+| kociemba 1.2.1, max_depth 24 | 15,934,020 ns | 135,265,492 ns | 20.77 | `docs/data/kociemba-d24-100k-seed1.json` |
+| kociemba 1.2.1, max_depth 21 | 14,686,947 ns | 526,922,688 ns | 20.59 | `docs/data/kociemba-d21-100k-seed1.json` |
+| exa depth 8 → 14 (20 scrambles each) | 70,350 ns → 37.75 s | n/a | equal to scramble depth | `docs/data/exa-depth-{8..14}.json` |
+
+All 100,000 states were solved in every enso and kociemba run with 0 invalid; both kociemba
+dumps were independently re-verified. exa's depth-14 run timed out after 6 of 20 solves and the
+partial JSON was retained. Startup is 14–18 ms and is reported separately from per-solve time.
 
 ### Known limits
 
@@ -43,6 +64,12 @@ No unreleased changes.
 - The external HTM-optimal cross-check for exa is unavailable: RubikOptimal/PyPy installed but
   table generation was cleared twice by host restarts, so no external optimal lengths are claimed
   (EXP-013).
+- GitHub's release APIs cannot produce a cryptographically signed annotated tag without a signing
+  key registered to an account. The v0.2.0 tag is GitHub-created and annotated, but unsigned;
+  tarball build-provenance attestations are GitHub-signed and are verified before publishing
+  (EXP-014).
+- Human visual confirmation of the generated SVG/PNG previews was not obtained after two tool
+  interruptions. XML validity, file-size limits and rasterization were checked machine-side only.
 
 ## [0.1.0] - 2026-11-21
 

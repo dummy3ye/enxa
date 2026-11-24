@@ -37,7 +37,7 @@ If that prints `avx2`, use the v3 tarball. Otherwise use v2. Verify a download w
 
 ```bash
 sha256sum -c SHA256SUMS
-gh attestation verify enxa-0.2.0-x86_64-linux-v3.tar.gz --repo <owner>/<repo>
+gh attestation verify enxa-0.2.0-x86_64-linux-v3.tar.gz --repo dummy3ye/enxa
 ```
 
 The files are published on the [v0.2.0 release page](https://github.com/dummy3ye/enxa/releases/tag/v0.2.0).

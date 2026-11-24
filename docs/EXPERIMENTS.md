@@ -34,8 +34,37 @@ Notes:       <what you learned>
 | EXP-011 | two-move macro entries | cubie p50 +0.3% (fail), facelets p50 -4.9%; 2.0x table bytes | revert |
 | EXP-012 | fair 100k external comparison | measured | measurement |
 | EXP-013 | exa depth curve + BFS truth | measured | measurement |
+| EXP-014 | signed GitHub release tag without a local key | API/UI cannot sign tags; use GitHub-signed provenance | document limit |
 
 ## Log
+
+### EXP-014: signed GitHub release tag without a local key
+Date:        2026-11-25
+Tool:        release workflow / GitHub APIs
+Status:      decision recorded before publishing v0.2.0
+Hypothesis:  A `workflow_dispatch` release can create a cryptographically signed annotated tag
+             without a local GPG/SSH key, while still producing GitHub-signed build-provenance
+             attestations for both tarballs.
+Kill if:     GitHub's release or Git-database APIs cannot sign annotated tag objects, or the web
+             UI only creates lightweight tags. In that case the unsigned tag is reported as a
+             limitation and no "signed tag" claim is made.
+Setup:       Inspected the existing `v0.1.0` tag with
+             `gh api repos/dummy3ye/enxa/git/ref/tags/v0.1.0` and the corresponding
+             `git/tags/<sha>` query; verified action SHAs with `git ls-remote`; consulted the
+             GitHub REST docs for `git/tags` and `releases` plus GitHub's community discussion
+             on release tags. No v0.2.0 tag was created during this investigation.
+Result:      The existing API/local-created annotated tag has
+             `verification: {verified: false, reason: "unsigned"}`. GitHub's `POST /git/tags`
+             endpoint only creates annotated tag objects and does not sign them; creating a
+             release from a new tag does not add a signature. The release UI creates lightweight
+             tags. Build provenance from `actions/attest-build-provenance` is GitHub-signed and
+             verifiable with `gh attestation verify`.
+Decision:    Keep the workflow-created annotated tag, verify attestation signatures before
+             publishing, and state plainly that the tag itself is unsigned. A signed tag would
+             require a key registered to a GitHub account, which the user asked us to stop
+             pursuing locally.
+Notes:       This is a release-integrity limitation, not a substitution: no claim of a signed
+             tag is made. `docs/CHANGELOG.md` and `CONTRIBUTING.md` carry the same limitation.
 
 ### EXP-013: exa depth curve and BFS truth
 Date:        2026-11-22
