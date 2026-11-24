@@ -18,4 +18,12 @@ cargo run --release -p benchkit -- --solver enso --n 1000 --seed 1 --facelets
 cargo run --release -p benchkit -- --solver enso --n 1000 --seed 1 --batch
 ```
 
-Startup is printed separately. See `docs/BENCHMARKING.md` before recording any number.
+`--json PATH` writes machine-readable reports; `scripts/bench_meta.py` adds commit, CPU and
+cube-file metadata. `--cube-file PATH` reuses the fixed 100k facelet file, `--cubie` times
+`CubieCube` input, `--batch` measures throughput, `--overhead` measures the timer/input floor,
+`--lengths` emits per-solve solution lengths, `--timeout-ms N` stops a long run with partial
+counts, and `--verify-file PATH` independently checks solutions produced by an external tool.
+
+The committed 100k results and their commands are in `docs/data/` and
+`docs/EXPERIMENTS.md` (EXP-012/013). Startup is printed separately. See
+`docs/BENCHMARKING.md` before recording any number.

@@ -12,9 +12,11 @@ through `cubecore::Rng` with an explicit seed.
 
 ## Status
 
-Milestone **M1** (scaffold + core) and **M2** (exa reference oracle) are complete.
-Milestone **M3** (enso Variant A four-stage table descent) is implemented and verified.
-enso is **not** a stub. See `docs/ROADMAP.md` for M4–M9.
+Milestones **M1/M2/M3** are complete: the core, the exa reference oracle and the enso
+four-stage table descent are implemented and verified. exa's depth curve and independent
+BFS truth test are measured; the external optimal cross-check is explicitly unavailable
+because repeated host restarts cleared the solver's tmpfs tables (EXP-013). enso is **not**
+a stub. See `docs/ROADMAP.md` for the remaining milestones.
 
 ## Install
 
@@ -65,6 +67,44 @@ cargo test -p verify --release --test gate -- --ignored --nocapture
 
 Every solver solution is verified by applying it to the input cube and checking that the
 cube is solved. Benchmarks report invalid and failed solves explicitly; they are never hidden.
+
+## Results
+
+Every number below is computed from committed JSON in `docs/data/`; the exact commands,
+CPU metadata and experiment decisions are in `docs/EXPERIMENTS.md`. See
+`docs/BENCHMARKING.md` for the methodology.
+
+| measurement (100,000 seed-1 states) | p50 | p99 | mean length | evidence |
+|-------------------------------------|-----|-----|-------------|----------|
+| enso, cubie input | 1,607 ns | 3,073 ns | 31 | `docs/data/enso-cubie-100k-seed1-run*.json` |
+| enso, facelet input | 3,564 ns | 9,712 ns | 31 | `docs/data/enso-facelets-100k-seed1-run*.json` |
+| enso, batch facelets | 2,458 ns/solve | n/a | 31 | `docs/data/enso-facelets-batch-100k-seed1-run*.json` |
+| harness floor, no solve | 21 ns | 27–29 ns | n/a | `docs/data/overhead-*-100k-seed1-run*.json` |
+| kociemba 1.2.1, max_depth 24 | 15.93 ms | 135.27 ms | 20.77 | `docs/data/kociemba-d24-100k-seed1.json` |
+| kociemba 1.2.1, max_depth 21 | 14.69 ms | 526.92 ms | 20.59 | `docs/data/kociemba-d21-100k-seed1.json` |
+
+Startup (table load/build) is 14–18 ms and is reported separately, never folded into
+per-solve latency. All solutions were verified: 100,000 solved and 0 invalid for every enso
+run, and both kociemba dumps were independently re-verified. kociemba is an external timing
+reference only; it produces shorter solutions but is not part of this repository.
+
+![enso latency, light](docs/assets/enso-latency-light.svg#gh-light-mode-only)
+![enso latency, dark](docs/assets/enso-latency-dark.svg#gh-dark-mode-only)
+
+![enso vs kociemba, light](docs/assets/enso-vs-kociemba-light.svg#gh-light-mode-only)
+![enso vs kociemba, dark](docs/assets/enso-vs-kociemba-dark.svg#gh-dark-mode-only)
+
+![solution length, light](docs/assets/solution-length-light.svg#gh-light-mode-only)
+![solution length, dark](docs/assets/solution-length-dark.svg#gh-dark-mode-only)
+
+![exa depth curve, light](docs/assets/exa-depth-curve-light.svg#gh-light-mode-only)
+![exa depth curve, dark](docs/assets/exa-depth-curve-dark.svg#gh-dark-mode-only)
+
+![overhead floor, light](docs/assets/overhead-floor-light.svg#gh-light-mode-only)
+![overhead floor, dark](docs/assets/overhead-floor-dark.svg#gh-dark-mode-only)
+
+The charts are generated from the raw JSON by `python3 scripts/assets.py`; CI and
+`./scripts/check.sh` run `python3 scripts/assets.py --check`.
 
 ## Rules of the project
 

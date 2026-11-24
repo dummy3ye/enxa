@@ -5,4 +5,5 @@ bash scripts/namelint.sh
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --release
+python3 scripts/assets.py --check
 echo "OK"

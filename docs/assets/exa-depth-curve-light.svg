@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="560" viewBox="0 0 1080 560" role="img"><title>exa solve time vs scramble depth</title>
+<rect width="1080" height="560" fill="#ffffff"/>
+<text x="24.0" y="32.0" font-family="sans-serif" font-size="21" fill="#1f2328" text-anchor="start" font-weight="700">exa solve time vs scramble depth</text>
+<text x="24.0" y="54.0" font-family="sans-serif" font-size="12" fill="#57606a" text-anchor="start" font-weight="400">n=20, seed 1; benchkit per-solve timing</text>
+<text x="24.0" y="478.0" font-family="sans-serif" font-size="9" fill="#57606a" text-anchor="start" font-weight="400">Data: exa-depth-8.json, exa-depth-9.json, exa-depth-10.json, exa-depth-11.json, exa-depth-12.json, exa-depth-13.json, exa-depth-14.json | commit: db385af22b00,</text>
+<text x="24.0" y="492.0" font-family="sans-serif" font-size="9" fill="#57606a" text-anchor="start" font-weight="400">9c2ad50b836f | CPU: Intel(R) Core(TM) i3-1005G1 CPU @ 1.20GHz | UTC: 2026-11-23</text>
+<line x1="88.0" y1="424.4" x2="1038.0" y2="424.4" stroke="#d0d7de" stroke-width="1"/>
+<text x="80.0" y="428.4" font-family="sans-serif" font-size="10" fill="#57606a" text-anchor="end" font-weight="400">70.35 us</text>
+<line x1="88.0" y1="257.0" x2="1038.0" y2="257.0" stroke="#d0d7de" stroke-width="1"/>
+<text x="80.0" y="261.0" font-family="sans-serif" font-size="10" fill="#57606a" text-anchor="end" font-weight="400">51.53 ms</text>
+<line x1="88.0" y1="89.6" x2="1038.0" y2="89.6" stroke="#d0d7de" stroke-width="1"/>
+<text x="80.0" y="93.6" font-family="sans-serif" font-size="10" fill="#57606a" text-anchor="end" font-weight="400">37.75 s</text>
+<text x="1038.0" y="60.0" font-family="sans-serif" font-size="10" fill="#57606a" text-anchor="end" font-weight="400">log scale</text>
+<polyline points="155.9,424.4 291.6,379.0 427.3,319.7 563.0,257.0 698.7,199.4 834.4,134.1 970.1,89.6" fill="none" stroke="#0969da" stroke-width="3"/>
+<circle cx="155.9" cy="424.4" r="4" fill="#0969da"/>
+<text x="155.9" y="412.4" font-family="sans-serif" font-size="11" fill="#1f2328" text-anchor="middle" font-weight="700">70.35 us</text>
+<text x="155.9" y="462.0" font-family="sans-serif" font-size="11" fill="#1f2328" text-anchor="middle" font-weight="400">8</text>
+<circle cx="291.6" cy="379.0" r="4" fill="#0969da"/>
+<text x="291.6" y="367.0" font-family="sans-serif" font-size="11" fill="#1f2328" text-anchor="middle" font-weight="700">421.86 us</text>
+<text x="291.6" y="462.0" font-family="sans-serif" font-size="11" fill="#1f2328" text-anchor="middle" font-weight="400">9</text>
+<circle cx="427.3" cy="319.7" r="4" fill="#0969da"/>
+<text x="427.3" y="307.7" font-family="sans-serif" font-size="11" fill="#1f2328" text-anchor="middle" font-weight="700">4.36 ms</text>
+<text x="427.3" y="462.0" font-family="sans-serif" font-size="11" fill="#1f2328" text-anchor="middle" font-weight="400">10</text>
+<circle cx="563.0" cy="257.0" r="4" fill="#0969da"/>
+<text x="563.0" y="245.0" font-family="sans-serif" font-size="11" fill="#1f2328" text-anchor="middle" font-weight="700">51.54 ms</text>
+<text x="563.0" y="462.0" font-family="sans-serif" font-size="11" fill="#1f2328" text-anchor="middle" font-weight="400">11</text>
+<circle cx="698.7" cy="199.4" r="4" fill="#0969da"/>
+<text x="698.7" y="187.4" font-family="sans-serif" font-size="11" fill="#1f2328" text-anchor="middle" font-weight="700">499.41 ms</text>
+<text x="698.7" y="462.0" font-family="sans-serif" font-size="11" fill="#1f2328" text-anchor="middle" font-weight="400">12</text>
+<circle cx="834.4" cy="134.1" r="4" fill="#0969da"/>
+<text x="834.4" y="122.1" font-family="sans-serif" font-size="11" fill="#1f2328" text-anchor="middle" font-weight="700">6.53 s</text>
+<text x="834.4" y="462.0" font-family="sans-serif" font-size="11" fill="#1f2328" text-anchor="middle" font-weight="400">13</text>
+<circle cx="970.1" cy="89.6" r="4" fill="#0969da"/>
+<text x="970.1" y="77.6" font-family="sans-serif" font-size="11" fill="#1f2328" text-anchor="middle" font-weight="700">37.75 s</text>
+<text x="970.1" y="462.0" font-family="sans-serif" font-size="11" fill="#1f2328" text-anchor="middle" font-weight="400">14</text>
+</svg>

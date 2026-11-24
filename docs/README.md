@@ -11,6 +11,8 @@ Start with `README.md` at the repository root and `AGENTS.md` if you are an agen
 | `BENCHMARKING.md` | rules for honest, reproducible measurements |
 | `EXPERIMENTS.md` | hypotheses, results and decisions, newest first |
 | `ROADMAP.md` | milestone status |
+| `data/` | committed raw benchmark JSON and the fixed 100k cube file |
+| `assets/` | generated light/dark SVG charts; regenerate with `python3 scripts/assets.py` |
 
 `ENSO_EXA_INIT.md` at the repository root is a historical extraction snapshot. Do not run
 it; it would restore the pre-refactor layout. Current layout is `ARCHITECTURE.md`.
