@@ -1,9 +1,12 @@
 name: release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version without the leading v (for example 0.2.0)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -14,12 +17,24 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      # Pinned to the exact SHAs verified on 2026-11-21.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: 1.97.1
           components: rustfmt, clippy
+
+      - name: Validate requested version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          manifest="$(python3 -c 'import re; print(re.search(r"^version = \"([^\"]+)\"", open("Cargo.toml").read(), re.M).group(1))')"
+          test "$manifest" = "$VERSION"
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/v${VERSION}" >/dev/null 2>&1; then
+            echo "tag v${VERSION} already exists" >&2
+            exit 1
+          fi
 
       - name: Verify repository health
         run: |
@@ -28,12 +43,13 @@ jobs:
           cargo clippy --workspace --all-targets --locked -- -D warnings
           cargo test --workspace --release --locked
           cargo test -p verify --release --locked --test gate -- --ignored --nocapture
+          cargo test -p verify --release --locked --test truth -- --ignored --nocapture
+          python3 scripts/assets.py --check
 
       - name: Build portable tarballs
         run: |
-          version="${GITHUB_REF_NAME#v}"
-          bash scripts/package.sh "$version" v2
-          bash scripts/package.sh "$version" v3
+          bash scripts/package.sh "${{ inputs.version }}" v2
+          bash scripts/package.sh "${{ inputs.version }}" v3
 
       - name: Write and verify checksums
         run: |
@@ -44,7 +60,7 @@ jobs:
 
       - name: Smoke test archives
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          version="${{ inputs.version }}"
           for level in v2 v3; do
             archive="dist/enxa-${version}-x86_64-linux-${level}.tar.gz"
             unpacked="$(mktemp -d)"
@@ -68,14 +84,34 @@ jobs:
             dist/*.tar.gz
             dist/SHA256SUMS
 
-      - name: Create pre-release
+      - name: Create published release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
         run: |
-          version="${GITHUB_REF_NAME#v}"
-          bash scripts/releasenotes.sh "$version" RELEASE_NOTES.md
-          gh release create "$GITHUB_REF_NAME" \
-            --title "enxa v${version}" \
+          set -euo pipefail
+          bash scripts/releasenotes.sh "$VERSION" RELEASE_NOTES.md
+          gh release create "v${VERSION}" \
+            --target "${GITHUB_SHA}" \
+            --title "enxa v${VERSION}" \
             --notes-file RELEASE_NOTES.md \
-            --prerelease \
+            --latest \
             dist/*.tar.gz dist/SHA256SUMS
+
+      - name: Verify GitHub-signed tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          ref="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/v${VERSION}")"
+          kind="$(printf '%s' "$ref" | jq -r .object.type)"
+          if [ "$kind" != tag ]; then
+            echo "expected an annotated tag object, got $kind" >&2
+            exit 1
+          fi
+          sha="$(printf '%s' "$ref" | jq -r .object.sha)"
+          verification="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${sha}" \
+            --jq '.verification | {verified, reason}')"
+          echo "$verification"
+          printf '%s' "$verification" | jq -e '.verified == true'

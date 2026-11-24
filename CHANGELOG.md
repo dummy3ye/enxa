@@ -19,6 +19,9 @@ No unreleased changes.
 - Ignored heavy BFS-to-depth-6 exa truth test in `verify/tests/truth.rs`.
 - `docs/data/cubes-100k-seed1.txt`: fixed 100,000 uniformly random facelet states used by every
   fair comparison.
+- Ten generated light/dark SVG charts from `docs/data/` via `python3 scripts/assets.py`, with
+  `--check` enforced by `scripts/check.sh` and CI.
+- Committed exa depth-8..14 JSON reports and kociemba depth-21/24 verification JSON.
 
 ### Changed
 
@@ -28,11 +31,18 @@ No unreleased changes.
 - Benchmark rules and methodology rewritten in `docs/BENCHMARKING.md`; raw JSON reports live in
   `docs/data/`.
 - Workspace package version is now `0.2.0`; `Cargo.lock` was refreshed with it.
+- Root and crate READMEs now carry measured numbers traced to `docs/data/*.json`.
+- The release workflow is manually dispatched with a version input, builds and attests both
+  portable tarballs via GitHub Actions, and creates a normal Latest release. GitHub creates and
+  signs the annotated tag, so no local GPG key is needed.
 
 ### Known limits
 
 - enso returns valid but non-optimal solutions; exa is optimal but not tuned for deep random
   states. They remain two distinct tools.
+- The external HTM-optimal cross-check for exa is unavailable: RubikOptimal/PyPy installed but
+  table generation was cleared twice by host restarts, so no external optimal lengths are claimed
+  (EXP-013).
 
 ## [0.1.0] - 2026-11-21
 
