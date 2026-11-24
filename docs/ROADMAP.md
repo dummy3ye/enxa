@@ -58,3 +58,7 @@ Status key: [x] done, [ ] todo. Update this file in the same change that finishe
 - [x] reproducible benchmark report with honest external kociemba timing reference and raw JSON
       in `docs/data/` (EXP-012); nissy/optimal cross-check unavailable (EXP-013)
 - [x] failed ideas documented (EXP-009, EXP-011 and the EXP-013 external-solver attempt)
+- [x] v0.2.0 published as the normal Latest release with both tarballs, `SHA256SUMS`, and verified
+      GitHub-signed build-provenance attestations
+      (https://github.com/dummy3ye/enxa/releases/tag/v0.2.0)
+- [x] release tag signing limitation recorded honestly in EXP-014

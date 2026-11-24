@@ -63,6 +63,11 @@ Decision:    Keep the workflow-created annotated tag, verify attestation signatu
              publishing, and state plainly that the tag itself is unsigned. A signed tag would
              require a key registered to a GitHub account, which the user asked us to stop
              pursuing locally.
+             The published v0.2.0 tag object is `03800ccb7123b2f41ee6e854db98296b26fc49f9`,
+             annotated, pointing at commit `a33284b5...`, and its verification fields are both
+             `null`; GitHub reports no signature rather than a verified signature. Local
+             `gh attestation verify` on both downloaded tarballs passed and listed both artifact
+             names as attestation subjects.
 Notes:       This is a release-integrity limitation, not a substitution: no claim of a signed
              tag is made. `docs/CHANGELOG.md` and `CONTRIBUTING.md` carry the same limitation.
 

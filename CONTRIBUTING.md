@@ -60,7 +60,8 @@ use ordinary names; crate names and Rust identifiers are unaffected.
    `gh attestation verify <file> --repo dummy3ye/enxa` and `tar xzf <file> && ./enso --version`.
    Confirm the tag is annotated and points at the release commit with
    `gh api repos/dummy3ye/enxa/git/ref/tags/v<version>` followed by a `git/tags/<sha>` query;
-   expect `verification.reason` to be `unsigned` and report it as such.
+   for the API-created v0.2.0 tag `verification.verified` and `verification.reason` are `null`
+   (no signature), so report it as unsigned rather than verified.
 6. If the workflow fails before anyone downloads anything, fix the problem and re-dispatch.
    After any download, never move the published tag: release `<next-version>` instead.
 

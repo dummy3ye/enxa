@@ -12,11 +12,12 @@ through `cubecore::Rng` with an explicit seed.
 
 ## Status
 
-Milestones **M1/M2/M3** are complete: the core, the exa reference oracle and the enso
-four-stage table descent are implemented and verified. exa's depth curve and independent
-BFS truth test are measured; the external optimal cross-check is explicitly unavailable
-because repeated host restarts cleared the solver's tmpfs tables (EXP-013). enso is **not**
-a stub. See `docs/ROADMAP.md` for the remaining milestones.
+**v0.2.0 is published** as the normal Latest release with signed build-provenance
+attestations for both tarballs. Milestones **M1/M2/M3** are complete: the core, the exa
+reference oracle and the enso four-stage table descent are implemented and verified. exa's
+depth curve and independent BFS truth test are measured; the external optimal cross-check is
+explicitly unavailable because repeated host restarts cleared the solver's tmpfs tables
+(EXP-013). enso is **not** a stub. See `docs/ROADMAP.md` for the remaining milestones.
 
 ## Install
 
@@ -41,6 +42,8 @@ gh attestation verify enxa-0.2.0-x86_64-linux-v3.tar.gz --repo dummy3ye/enxa
 ```
 
 The files are published on the [v0.2.0 release page](https://github.com/dummy3ye/enxa/releases/tag/v0.2.0).
+The GitHub-created release tag is annotated but not cryptographically signed; the tarball
+attestations are GitHub-signed (EXP-014).
 
 ## Layout
 
